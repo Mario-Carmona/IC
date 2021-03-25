@@ -291,7 +291,271 @@
 )
 
 ;;;;;;;;;;;;;;;;;;;;;; CONOCIMIENTO EXPERTO ;;;;;;;;;;
-;;;;; ¡¡¡¡¡¡¡¡¡¡ Añadir conocimiento para que juege como vosotros jugariais !!!!!!!!!!!!
+
+
+;;;;;;  DEDUCIONES
+
+;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR LA POSICIÓN SIGUIENTE
+
+;; En todas las reglas se pone como antecedente una posición (f,c) y su posible
+;; posición siguiente (f1,c1). Para comprobar que si existe esta relación, se realizan
+;; unos calculos y unas comprobaciones según la dirección que se haya elegido. Los
+;; cálculos consisten en sumar o restar una unidad a f, ó sumar una unidad a c. Yo 
+;; considero que la posición siguiente siempre será la que siga la dirección hacia la
+;; derecha del tablero, y en el caso de la dirección vertical la que se encuentre arriba de (f,c).
+;; Con el test explícitamente se comprueba si la posición siguiente forma parte del tablero, porque
+;; si no el antecedente del hecho de tipo Tablero de la posición siguiente sería falso.
+
+;;;;;;;;;;;;;;;; Hechos para representar la posición siguiente
+
+;;;;;;; (Siguiente ?f ?c ?direccion ?f1 ?c1)   representa que la posicion f1,c1 es la siguiente posición a f,c siguiendo la direccion indicada en el hecho
+
+(defrule siguiente_posicion_horizontal
+(Tablero Juego ?f ?c _)
+(Tablero Juego ?f ?c1 _)
+(test (= (+ ?c 1) ?c1))
+=>
+(assert (Siguiente ?f ?c horizontal ?f ?c1))
+)
+
+(defrule siguiente_posicion_vertical
+(Tablero Juego ?f ?c _)
+(Tablero Juego ?f1 ?c _)
+(test (= (- ?f 1) ?f1))
+=>
+(assert (Siguiente ?f ?c vertical ?f1 ?c))
+)
+
+(defrule siguiente_posicion_diagonal_directa
+(Tablero Juego ?f ?c _)
+(Tablero Juego ?f1 ?c1 _)
+(test (= (- ?f 1) ?f1))
+(test (= (+ ?c 1) ?c1))
+=>
+(assert (Siguiente ?f ?c diagonal_directa ?f1 ?c1))
+)
+
+(defrule siguiente_posicion_diagonal_inversa
+(Tablero Juego ?f ?c _)
+(Tablero Juego ?f1 ?c1 _)
+(test (= (+ ?f 1) ?f1))
+(test (= (+ ?c 1) ?c1))
+=>
+(assert (Siguiente ?f ?c diagonal_inversa ?f1 ?c1))
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR LA POSICIÓN ANTERIOR
+
+;; En todas las reglas se pone como antecedente una posición (f,c) y su posible
+;; posición anterior (f1,c1). Para comprobar que si existe esta relación, se realizan
+;; unos calculos y unas comprobaciones según la dirección que se haya elegido. Los
+;; cálculos consisten en sumar o restar una unidad a f, ó restar una unidad a c. Yo 
+;; considero que la posición anterior siempre será la que siga la dirección hacia la
+;; izquierda del tablero, y en el caso de la dirección vertical la que se encuentre abajo de (f,c).
+;; Con el test explícitamente se comprueba si la posición anterior forma parte del tablero, porque
+;; si no el antecedente del hecho de tipo Tablero de la posición anterior sería falso.
+
+;;;;;;;;;;;;;;;; Hechos para representar la posición anterior
+
+;;;;;;; (Anterior ?f ?c ?direccion ?f1 ?c1)   representa que la posicion f1,c1 es la siguiente posición a f,c siguiendo la direccion indicada en el hecho
+
+(defrule anterior_posicion_horizontal
+(Tablero Juego ?f ?c _)
+(Tablero Juego ?f ?c1 _)
+(test (= (- ?c 1) ?c1))
+=>
+(assert (Anterior ?f ?c horizontal ?f ?c1))
+)
+
+(defrule anterior_posicion_vertical
+(Tablero Juego ?f ?c _)
+(Tablero Juego ?f1 ?c _)
+(test (= (+ ?f 1) ?f1))
+=>
+(assert (Anterior ?f ?c vertical ?f1 ?c))
+)
+
+(defrule anterior_posicion_diagonal_directa
+(Tablero Juego ?f ?c _)
+(Tablero Juego ?f1 ?c1 _)
+(test (= (+ ?f 1) ?f1))
+(test (= (- ?c 1) ?c1))
+=>
+(assert (Anterior ?f ?c diagonal_directa ?f1 ?c1))
+)
+
+(defrule anterior_posicion_diagonal_inversa
+(Tablero Juego ?f ?c _)
+(Tablero Juego ?f1 ?c1 _)
+(test (= (- ?f 1) ?f1))
+(test (= (- ?c 1) ?c1))
+=>
+(assert (Anterior ?f ?c diagonal_inversa ?f1 ?c1))
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;  MANTENER POSICIONES DE CAIDA
+
+;; Al empezar el programa se cargan por defecto los hechos que indican que la
+;; ficha caerá en la última fila, ya que todas las posiciones del tablero están
+;; en blanco.
+
+(deffacts Posiciones_de_caida_inicial
+(Caeria Juego 6 1) (Caeria Juego 6 2) (Caeria Juego 6 3) (Caeria Juego 6 4)
+(Caeria Juego 6 5) (Caeria Juego 6 6) (Caeria Juego 6 7)
+)
+
+;; Esta regla se lanzará siempre antes de que alguno de los jugadores coloque la ficha
+;; en la posición que indicó, para lanzar la actualización se añade un hecho que lanza 
+;; la regla correspondientes, se hace de esta manera para evitar bucles infinitos. Una
+;; vez que se cambia se posibilita la ejecución de la regla posicion_caida, que consiste
+;; en mover una posición hacia arriba la posición de caida de la ficha en cierta columna.
+
+;;;;;;;;;;;;;;;; Hechos para representar la posición en que caería la ficha en cierta columna
+
+;;;;;;; (posicion_caida ?c)    representa que se debe realizar la actualización, y que la ficha va a ser introducida en la
+;;;;;;;                        columna ?c
+;;;;;;;
+;;;;;;; (Caeria ?t ?f ?c)    representa que si se coloca la ficha en la columna ?c, la ficha se quedará en la fila ?f. Si la 
+;;;;;;;                      fila vale 0 quiere decir que la columna está completa
+
+(defrule actualizar_caida
+(declare (salience 1))
+(Juega ?j ?c)
+=>
+(assert (posicion_caida ?c))
+)
+
+(defrule posicion_caida
+?Y <- (posicion_caida ?c)
+?X <- (Caeria Juego ?f ?c)
+=>
+(bind ?r (- ?f 1))
+(retract ?X ?Y)
+(assert (Caeria Juego ?r ?c))
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR CONEXIONES DE DOS FICHAS DEL MISMO JUGADOR
+
+;; Estas reglas se lanzan cuando en cierta posición del tablero hay una ficha de un
+;; jugador, y en la posición siguiente ó anterior a esa posición hay una ficha del
+;; mismo jugador. Estas dos fichas forman una conexión de dos en linea. Las conexiones
+;; siempre empiezan por la posición más a la izquierda, y terminan en la posición más
+;; a la derecha. En el caso de la dirección vertical, empiezan abajo y terminan arriba.
+
+;;;;;;;;;;;;;;;; Hechos para representar la conexión de dos fichas del mismo jugador
+
+;;;;;;; (Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j)    representa la conexión de dos fichas del jugador ?j en el tablero ?t
+;;;;;;;                                         que empieza en la posición (?f1,?c1) y termina en la posición (?f2,?c2)
+;;;;;;;                                         siguiendo la dirección ?d
+
+(defrule comprobar_conectado_delante
+(Tablero ?t ?f1 ?c1 ?j)
+(test (neq ?j _))
+(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
+(Tablero ?t ?f2 ?c2 ?j)
+=>
+(assert (Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j))
+)
+
+(defrule comprobar_conectado_detras
+(Tablero ?t ?f2 ?c2 ?j)
+(test (neq ?j _))
+(Anterior ?f2 ?c2 ?d ?f1 ?c1)
+(Tablero ?t ?f1 ?c1 ?j)
+=>
+(assert (Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j))
+)
 
 
 
+
+(defrule comprobar_3_en_linea_delante
+(Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j)
+(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
+(Tablero ?t ?f3 ?c3 ?j)
+=>
+(assert (Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j))
+)
+
+(defrule comprobar_3_en_linea_detras
+(Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j)
+(Anterior ?f1 ?c1 ?d ?f0 ?c0)
+(Tablero ?t ?f0 ?c0 ?j)
+=>
+(assert (Tres_en_linea ?t ?d ?f0 ?c0 ?f2 ?c2 ?j))
+)
+
+
+
+
+
+
+;; eliminar conexiones de dos incluidas en conexiones de tres
+
+(defrule eliminar_conexion_inclu_en_otra
+?X <- (Conectado ?t ?d ?fa1 ?ca1 ?fa2 ?ca2 ?j)
+(Tres_en_linea ?t ?d ?fb1 ?cb1 ?fb3 ?cb3 ?j)
+(test (and (<= ?fb1 ?fa1) (<= ?fa1 ?fb3))
+(test (and (<= ?cb1 ?ca1) (<= ?ca1 ?cb3))
+=>
+(retract ?X)
+)
+
+
+
+
+
+
+
+(defrule comprobar_posible_victoria_delante
+(Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
+(Tablero ?t ?f4 ?c4 _)
+=>
+(assert (ganaria ?j ?c4))
+)
+
+(defrule comprobar_posible_victoria_detras
+(Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Anterior ?f1 ?c1 ?d ?f0 ?c0)
+(Tablero ?t ?f0 ?c0 _)
+=>
+(assert (ganaria ?j ?c0))
+)
+
+
+
+
+;;;;;;  ANALISIS DEL TABLERO
+
+
+
+
+
+;;;;;;  ACCIONES A REALIZAR EN BASE A LOS HECHOS
+
+
+
+(defrule ganar_partida
+(declare (salience -1))
+(Turno M)
+(ganaria M ?c)
+=>
+(printout t "JUEGO en la columna (con criterio) " ?c crlf)
+(assert (Juega M ?c))
+)
+
+
+
+
+(defrule salvar_partida
+(declare (salience -2))
+(Turno M)
+(ganaria J ?c)
+=>
+(printout t "JUEGO en la columna (con criterio) " ?c crlf)
+(assert (Juega M ?c))
+)
