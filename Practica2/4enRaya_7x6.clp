@@ -402,8 +402,8 @@
 ;; en blanco.
 
 (deffacts Posiciones_de_caida_inicial
-(Caeria Juego 6 1) (Caeria Juego 6 2) (Caeria Juego 6 3) (Caeria Juego 6 4)
-(Caeria Juego 6 5) (Caeria Juego 6 6) (Caeria Juego 6 7)
+(Caeria 6 1) (Caeria 6 2) (Caeria 6 3) (Caeria 6 4)
+(Caeria 6 5) (Caeria 6 6) (Caeria 6 7)
 )
 
 ;; Esta regla se lanzará siempre antes de que alguno de los jugadores coloque la ficha
@@ -417,7 +417,7 @@
 ;;;;;;; (posicion_caida ?c)    representa que se debe realizar la actualización, y que la ficha va a ser introducida en la
 ;;;;;;;                        columna ?c
 ;;;;;;;
-;;;;;;; (Caeria ?t ?f ?c)    representa que si se coloca la ficha en la columna ?c, la ficha se quedará en la fila ?f. Si la 
+;;;;;;; (Caeria ?f ?c)       representa que si se coloca la ficha en la columna ?c, la ficha se quedará en la fila ?f. Si la 
 ;;;;;;;                      fila vale 0 quiere decir que la columna está completa
 
 (defrule actualizar_caida
@@ -428,12 +428,13 @@
 )
 
 (defrule posicion_caida
+(declare (salience 1))
 ?Y <- (posicion_caida ?c)
-?X <- (Caeria Juego ?f ?c)
+?X <- (Caeria ?f ?c)
 =>
 (bind ?r (- ?f 1))
 (retract ?X ?Y)
-(assert (Caeria Juego ?r ?c))
+(assert (Caeria ?r ?c))
 )
 
 
@@ -498,8 +499,8 @@
 (defrule eliminar_conexion_inclu_en_otra
 ?X <- (Conectado ?t ?d ?fa1 ?ca1 ?fa2 ?ca2 ?j)
 (Tres_en_linea ?t ?d ?fb1 ?cb1 ?fb3 ?cb3 ?j)
-(test (and (<= ?fb1 ?fa1) (<= ?fa1 ?fb3))
-(test (and (<= ?cb1 ?ca1) (<= ?ca1 ?cb3))
+(test (and (<= ?fb1 ?fa1) (<= ?fa1 ?fb3)))
+(test (and (<= ?cb1 ?ca1) (<= ?ca1 ?cb3)))
 =>
 (retract ?X)
 )
@@ -531,8 +532,298 @@
 
 ;;;;;;  ANALISIS DEL TABLERO
 
+(defrule iniciar_primer_analisis
+(Turno M)
+(not (Contador ?num))
+=>
+(assert (Contador 1))
+)
+
+(defrule iniciar_resto_analisis
+(Turno M)
+?X <- (Contador ?num)
+?Y <- (Encontrado ?j ?aux ?num)
+=>
+(retract ?X ?Y)
+(assert (Contador 1))
+)
+
+(defrule crear_tablero_analisis
+(Tablero Juego ?f ?c ?j1)
+(not (Tablero Analisis ?f ?c ?j2))
+=>
+(assert (Tablero Analisis ?f ?c ?j1))
+)
+
+(defrule actualizar_tablero_analisis
+(Tablero Juego ?f ?c ?j1)
+?X <- (Tablero Analisis ?f ?c ?j2)
+(test (and (neq ?j1 _) (neq ?j1 ?j2)))
+=>
+(retract ?X)
+(assert (Tablero Analisis ?f ?c ?j1))
+)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defrule comprobar_perimetro_conec_sigui_ini
+(Contador ?num)
+(test (neq ?num 8))
+(Caeria ?f ?num)
+(Siguiente ?f ?num ?d ?f1 ?c1)
+(Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M)
+(not (Perimetro ?aux ?num))
+=>
+(assert (Perimetro 2 ?num))
+)
+
+
+(defrule comprobar_perimetro_soli_sigui_ini
+(Contador ?num)
+(test (neq ?num 8))
+(Caeria ?f ?num)
+(Siguiente ?f ?num ?d ?f1 ?c1)
+(not (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M))
+(not (Perimetro ?aux ?num))
+=>
+(assert (Perimetro 1 ?num))
+)
+
+(defrule comprobar_perimetro_conec_sigui
+(Contador ?num)
+(test (neq ?num 8))
+(Caeria ?f ?num)
+(Siguiente ?f ?num ?d ?f1 ?c1)
+(Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M)
+?X <- (Perimetro ?aux ?num)
+?newaux <- (+ ?aux 2)
+=>
+(retract ?X)
+(assert (Perimetro ?newaux ?num))
+)
+
+
+(defrule comprobar_perimetro_soli_sigui
+(Contador ?num)
+(test (neq ?num 8))
+(Caeria ?f ?num)
+(Siguiente ?f ?num ?d ?f1 ?c1)
+(not (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M))
+?X <- (Perimetro ?aux ?num)
+?newaux <- (+ ?aux 1)
+=>
+(retract ?X)
+(assert (Perimetro ?newaux ?num))
+)
+
+
+;;;;;;;;;;;;;;
+
+
+(defrule comprobar_perimetro_conec_ante_ini
+(Contador ?num)
+(test (neq ?num 8))
+(Caeria ?f ?num)
+(Anterior ?f ?num ?d ?f2 ?c2)
+(Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M)
+(not (Perimetro ?aux ?num))
+=>
+(assert (Perimetro 2 ?num))
+)
+
+
+(defrule comprobar_perimetro_soli_ante_ini
+(Contador ?num)
+(test (neq ?num 8))
+(Caeria ?f ?num)
+(Anterior ?f ?num ?d ?f2 ?c2)
+(not (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M))
+(not (Perimetro ?aux ?num))
+=>
+(assert (Perimetro 1 ?num))
+)
+
+
+(defrule comprobar_perimetro_conec_ante
+(Contador ?num)
+(test (neq ?num 8))
+(Caeria ?f ?num)
+(Anterior ?f ?num ?d ?f2 ?c2)
+(Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M)
+?X <- (Perimetro ?aux ?num)
+?newaux <- (+ ?aux 2)
+=>
+(retract ?X)
+(assert (Perimetro ?newaux ?num))
+)
+
+
+(defrule comprobar_perimetro_soli_ante
+(Contador ?num)
+(test (neq ?num 8))
+(Caeria ?f ?num)
+(Anterior ?f ?num ?d ?f2 ?c2)
+(not (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M))
+?X <- (Perimetro ?aux ?num)
+?newaux <- (+ ?aux 1)
+=>
+(retract ?X)
+(assert (Perimetro ?newaux ?num))
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defrule comprobar_posible_victoria_delante_analisis_ini
+(Contador ?num)
+(test (neq ?num 8))
+(Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
+(Tablero Analisis ?f4 ?c4 _)
+=>
+(assert (Encontrado ?j 1 ?num))
+)
+
+(defrule comprobar_posible_victoria_detras_analisis_ini
+(Contador ?num)
+(test (neq ?num 8))
+(Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Anterior ?f1 ?c1 ?d ?f0 ?c0)
+(Tablero Analisis ?f0 ?c0 _)
+=>
+(assert (Encontrado ?j 1 ?num))
+)
+
+
+
+(defrule comprobar_posible_victoria_delante_analisis
+(Contador ?num)
+(test (neq ?num 8))
+(Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
+(Tablero Analisis ?f4 ?c4 _)
+?X <- (Encontrado ?j ?aux ?num)
+?newaux <- (+ ?aux 1)
+=>
+(retract ?X)
+(assert (Encontrado ?j ?newaux ?num))
+)
+
+(defrule comprobar_posible_victoria_detras_analisis
+(Contador ?num)
+(test (neq ?num 8))
+(Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Anterior ?f1 ?c1 ?d ?f0 ?c0)
+(Tablero Analisis ?f0 ?c0 _)
+?X <- (Encontrado ?j ?aux ?num)
+?newaux <- (+ ?aux 1)
+=>
+(retract ?X)
+(assert (Encontrado ?j ?newaux ?num))
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+(defrule eliminar_conectados_contador
+(declare (salience 2))
+(Eliminar)
+(Contador ?num)
+(Caeria ?f ?num)
+?X <- (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 J)
+(test (or (and (eq ?f1 ?f) (eq ?c1 ?num)) (and (eq ?f2 ?f) (eq ?c2 ?num))))
+=>
+(retract ?X)
+)
+
+
+(defrule eliminar_3_en_linea_contador
+(declare (salience 2))
+(Eliminar)
+(Contador ?num)
+(Caeria ?f ?num)
+?X <- (Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 J)
+(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
+(test (or (or (and (eq ?f1 ?f) (eq ?c1 ?num)) (and (eq ?f2 ?f) (eq ?c2 ?num))) (and (eq ?f3 ?f) (eq ?c3 ?num))))
+=>
+(retract ?X)
+)
+
+
+(defrule eliminar_elementos
+(declare (salience 1))
+?X <- (Eliminar)
+(Contador ?num)
+=>
+(retract ?X)
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+(defrule aumentar_contador
+(declare (salience -1))
+?X <- (Contador ?num)
+?i <- (+ ?num 1)
+(test (neq ?i 8))
+(Caeria ?f1 ?num)
+(Caeria ?f2 ?i)
+?Y <- (Tablero Analisis ?f1 ?num ?j1)
+?Z <- (Tablero Analisis ?f2 ?i ?j2)
+=>
+(retract ?X ?Y ?Z)
+(assert (Tablero Analisis ?f1 ?num _))
+(assert (Tablero Analisis ?f2 ?i J))
+(assert (Contador ?i))
+(assert (Eliminar))
+)
+
+
+(defrule ultimo_contador
+(declare (salience -1))
+?X <- (Contador ?num)
+?i <- (+ ?num 1)
+(test (eq ?i 8))
+(Caeria ?f ?num)
+?Y <- (Tablero Analisis ?f ?num ?j)
+=>
+(retract ?X ?Y)
+(assert (Tablero Analisis ?f ?num _))
+(assert (Contador ?i))
+(assert (Eliminar))
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defrule obtener_jugada_analisis
+(Contador ?num)
+(test (= ?num 8))
+?X <- (Encontrado ?j ?aux1 ?num1)
+?Y <- (Encontrado ?j ?aux2 ?num2)
+(test (neq ?num1 ?num2))
+(test (<= ?aux1 ?aux2))
+=>
+(retract ?X)
+)
+
+
+(defrule obtener_perimetro_analisis
+(Contador ?num)
+(test (= ?num 8))
+?X <- (Perimetro ?aux1 ?num1)
+?Y <- (Perimetro ?aux2 ?num2)
+(test (neq ?num1 ?num2))
+(test (<= ?aux1 ?aux2))
+=>
+(retract ?X)
+)
 
 
 ;;;;;;  ACCIONES A REALIZAR EN BASE A LOS HECHOS
@@ -540,7 +831,7 @@
 
 
 (defrule ganar_partida
-(declare (salience -1))
+(declare (salience 9999))
 (Turno M)
 (ganaria M ?c)
 =>
@@ -548,13 +839,42 @@
 (assert (Juega M ?c))
 )
 
-
-
-
 (defrule salvar_partida
 (declare (salience -2))
 (Turno M)
 (ganaria J ?c)
+=>
+(printout t "JUEGO en la columna (con criterio) " ?c crlf)
+(assert (Juega M ?c))
+)
+
+
+(defrule ganar_partida_analisis
+(declare (salience -3))
+(Turno M)
+(Encontrado M ?num ?c)
+(test (>= ?num 1))
+=>
+(printout t "JUEGO en la columna (con criterio) " ?c crlf)
+(assert (Juega M ?c))
+)
+
+
+(defrule salvar_partida_analisis
+(declare (salience -4))
+(Turno M)
+(Encontrado M ?num ?c)
+(test (>= ?num 2))
+=>
+(printout t "JUEGO en la columna (con criterio) " ?c crlf)
+(assert (Juega M ?c))
+)
+
+
+(defrule mejor_posicion_analisis
+(declare (salience -5))
+(Turno M)
+(Perimetro ?num ?c)
 =>
 (printout t "JUEGO en la columna (con criterio) " ?c crlf)
 (assert (Juega M ?c))
