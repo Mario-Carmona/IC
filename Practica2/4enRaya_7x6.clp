@@ -293,7 +293,26 @@
 ;;;;;;;;;;;;;;;;;;;;;; CONOCIMIENTO EXPERTO ;;;;;;;;;;
 
 
-;;;;;;  DEDUCIONES
+;; En este sistema experto he creado unas cuántas reglas que realizan deduciones básicas
+;; sobre el estado del juego todo el rato. En estas deduciones básicas se detectan los casos
+;; en que nos falta una ficha para ganar ó una ficha para perder, por lo que actuán sobre el 
+;; estado de juego más inmediato.
+;;
+;; Además durante el turno de la máquina se realiza una proceso de análisis, que deduce situaciones
+;; que no son tan inmediatas. En el caso de mi análisis, se comprueba el estado de juego tras jugar
+;; una ficha de la máquina. Con este análisis es posible prevenir a la máquina de situaciones en las
+;; que el jugador contrario tiene dos posibles 4 en raya, por lo que es imposible salvar la partida;
+;; de situaciones en las que colocando una ficha se posibilita la victoria del jugador contrario, al
+;; darle acceso a posiciones nuevas donde colocar la ficha, en concreto la posición de encima de la ficha
+;; colocada. No todos los escenarios de encontrarse con dos posibles victorias del jugador contrario
+;; se pueden prevenir, ya que sólo se analiza hasta cierto nivel de juego, sin profundizar demasiado.
+;; Además de prevenir, el análisis le sirve a la máquina para saber en que posición es más recomendable
+;; colocar la ficha en base al número de posibles conexiones con la nueva ficha.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;  DEDUCIONES  ;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR LA POSICIÓN SIGUIENTE
 
@@ -452,7 +471,7 @@
 ;;;;;;;                                         que empieza en la posición (?f1,?c1) y termina en la posición (?f2,?c2)
 ;;;;;;;                                         siguiendo la dirección ?d
 
-(defrule comprobar_conectado_delante
+(defrule comprobar_conectaniveldo_delante
 (Tablero ?t ?f1 ?c1 ?j)
 (test (neq ?j _))
 (Siguiente ?f1 ?c1 ?d ?f2 ?c2)
@@ -470,7 +489,20 @@
 (assert (Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j))
 )
 
-;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR CONEXIONES DE TRES FICHAS DEL MISMO JUGADOR
+
+;; Estas reglas se lanzan cuando en cierta posición del tablero hay conectadas dos fichas de un
+;; jugador, y en la posición siguiente ó anterior a esa posición hay una ficha del
+;; mismo jugador. Estas tres fichas forman una conexión de tres en linea. Las conexiones
+;; siempre empiezan por la posición más a la izquierda, y terminan en la posición más
+;; a la derecha. En el caso de la dirección vertical, empiezan abajo y terminan arriba.
+
+;;;;;;;;;;;;;;;; Hechos para representar la conexión de tres fichas del mismo jugador
+
+;;;;;;; (Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)    representa la conexión de tres fichas del jugador ?j en el tablero ?t,
+;;;;;;;                                             que empieza en la posición (?f1,?c1) y termina en la posición (?f3,?c3)
+;;;;;;;                                             siguiendo la dirección ?d
 
 (defrule comprobar_3_en_linea_delante
 (Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j)
@@ -514,8 +546,8 @@
 
 ;;;;;;;;;;;;;;;; Hecho para representar la situación en que un jugador se puede convertir en ganador
 
-;;;;;;; (ganaria ?j ?c)    representa la posibilidad de ganar del jugador ?j, si introduce
-;;;;;;;                    una ficha en la columna ?c
+;;;;;;; (PosibleVictoria ?j ?c)    representa la posibilidad de ganar del jugador ?j, si introduce
+;;;;;;;                            una ficha en la columna ?c
 
 (defrule comprobar_posible_victoria_delante
 (Tres_en_linea Juego ?d ?f1 ?c1 ?f3 ?c3 ?j)
@@ -523,7 +555,7 @@
 (Tablero Juego ?f4 ?c4 _)
 (Caeria ?f4 ?c4)
 =>
-(assert (ganaria ?j ?c4))
+(assert (PosibleVictoria ?j ?c4))
 )
 
 (defrule comprobar_posible_victoria_detras
@@ -532,21 +564,21 @@
 (Tablero Juego ?f0 ?c0 _)
 (Caeria ?f0 ?c0)
 =>
-(assert (ganaria ?j ?c0))
+(assert (PosibleVictoria ?j ?c0))
 )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR UN HECHO QUE INDICA QUE UN JUGADOR ESTÁ A UNA FICHA DE GANAR
 
-;; Esta regla se lanza cuando existe un hecho "ganaria ?jugador ?columna", y en la posición
+;; Esta regla se lanza cuando existe un hecho "PosibleVictoria ?jugador ?columna", y en la posición
 ;; que faltaba para completar el 4 en raya, se ha colocado una ficha del jugador contrario.
 ;; Esto es posible que pase ya que este hecho se está deduciendo todo el rato, sin importar
 ;; de que jugador se ha el turno en ese momento. Al lanzarse la regla, como consecuencia se
 ;; borra el hecho que indica la posibilidad de ganar. 
 
-(defrule retractar_ganaria
+(defrule retractar_posible_victoria
 (declare (salience 9999))
-?X <- (ganaria ?j1 ?c4)
+?X <- (PosibleVictoria ?j1 ?c4)
 (Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j1)
 (Siguiente ?f3 ?c3 ?d ?f4 ?c4)
 (Tablero ?t ?f4 ?c4 ?j2)
@@ -557,37 +589,23 @@
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;  ANALISIS DEL TABLERO  ;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;  ANALISIS DEL TABLERO
 
-(defrule iniciar_primer_analisis
-(Turno M)
-(not (Analizando))
-(not (Contador ?num))
-(Caeria ?f 1)
-=>
-(assert (Analizando))
-(assert (Contador 1))
-(assert (Tablero Analisis ?f 1 J))
-(assert (Encontrado 0 1))
-(assert (Perimetro 0 1))
-)
+;;;;;;;;;;;;;;;;;;;;;;;  CREAR LOS HECHOS QUE COMPONEN EL TABLERO DE ANALISIS
 
-(defrule iniciar_resto_analisis
-(Turno M)
-(not (Analizando))
-?X <- (Contador ?num)
-?Y <- (Encontrado ?aux1 ?num1)
-?Z <- (Perimetro ?aux2 ?num2)
-(Caeria ?f 1)
-=>
-(retract ?X ?Y ?Z)
-(assert (Analizando))
-(assert (Contador 1))
-(assert (Tablero Analisis ?f 1 J))
-(assert (Encontrado 0 1))
-(assert (Perimetro 0 1))
-)
+;; En esta regla se van creando los hechos Tablero para el analisis, copiando el valor de la
+;; casilla equivalente en el tablero de Juego. Sólo se crea esta posición en el tablero de
+;; análisis, si todavía no existe una posición con ese valor de fila y columna en el tablero de
+;; análisis.
+
+;;;;;;;;;;;;;;;; Hechos para representar la posición en el tablero de análisis
+
+;;;;;;; (Tablero Analisis ?f ?c ?j)   representa que en la posicion con fila f y columna c, hay una
+;;;;;;;                               ficha del tipo ?j, que puede ser de la máquina, del jugador, ó
+;;;;;;;                               estar en blanco. 
 
 (defrule crear_tablero_analisis
 (Tablero Juego ?f ?c ?j1)
@@ -595,6 +613,20 @@
 =>
 (assert (Tablero Analisis ?f ?c ?j1))
 )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR Y RETRACTAR LOS HECHOS DE LAS POSICIONES DEL TABLERO DE ANALISIS
+
+;; Con esta regla se va actualizando el valor del tablero de análisis, en función de los cambios que
+;; se hagan en el tablero de Juego. Si una posición en el tablero de Juego cambia de valor, lanza el
+;; antecedente, y como consecuencia se borra el valor actual de esa posición en el tablero de análisis, 
+;; y se añade el hecho que indica el nuevo valor.
+
+;;;;;;;;;;;;;;;; Hechos para representar la posición siguiente
+
+;;;;;;; (Tablero Analisis ?f ?c ?j)   representa que en la posicion con fila f y columna c, hay una
+;;;;;;;                               ficha del tipo ?j, que puede ser de la máquina, del jugador, ó
+;;;;;;;                               estar en blanco. 
 
 (defrule actualizar_tablero_analisis
 (Tablero Juego ?f ?c ?j1)
@@ -606,10 +638,91 @@
 )
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;  INICIAR EL PROCESO DE ANALISIS
+
+;; Con esta regla se inicia el proceso de análisis por primera vez, en el cuál 
+;; se simula los efectos de colocar una ficha de un jugador en cierta posición. En 
+;; cada iteración se coloca una ficha del Jugador en cada una de las columnas,
+;; por lo que hay tantas iteraciones como columnas en las que se pueda colocar
+;; una ficha. Al colocar la ficha del Jugador se puede observar si se generarían
+;; nuevos posibles cuatro en raya para el Jugador. Además para saber en que
+;; columna introducir la ficha en el caso de que no exista una jugada peligrosa
+;; del Jugador, se comprueba cuántas conexiones posibles de la máquina hay en
+;; cada posición donde se puede colocar una ficha.
+
+;;;;;;;;;;;;;;;; Hechos para representar el proceso de análisis
+
+;;;;;;; (Analizando)                  representa que se está realizando el análisis
+;;;;;;; (Contador ?num)               representa la columna que se está simulando
+;;;;;;; (Tablero Analisis ?f ?c ?j)   representa una posición del tablero de análisis con valor de fila ?f
+;;;;;;;                               , valor de columna ?c y que contiene la ficha ?j
+;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles cuatro en raya encontrados
+;;;;;;;                               en la simulación de la columna ?contador
+;;;;;;; (PuntosPositivos ?num ?contador)    representa el número ?num de conexiones posibles de la máquina 
+;;;;;;;                               en la posición de caída en la columna ?contador
+
+(defrule iniciar_primer_analisis
+(Turno M)
+(not (Analizando))
+(not (Contador ?num))
+(Caeria ?f 1)
+=>
+(assert (Analizando))
+(assert (Contador 1))
+(assert (Tablero Analisis ?f 1 J))
+(assert (PuntosNegativos 0 1))
+(assert (PuntosPositivos 0 1))
+)
+
+;; Esta regla inicia el proceso de análisis desde el segundo turno de la máquina en adelante.
+;; Esta regla hace lo mismo que la anterior, pero añadiendo la eliminación de ciertas deduciones
+;; realizadas en el análisis del turno anterior. Estas deduciones eliminadas son el contador
+;; , la posición con mayor número de 4 en raya posibles del jugador contrario y la posición con 
+;; mayor número de conexiones de la máquina del análisis anterior.
+
+;;;;;;;;;;;;;;;; Hechos para representar el proceso de análisis
+
+;;;;;;; (Analizando)                       representa que se está realizando el análisis
+;;;;;;; (Contador ?num)                    representa la columna que se está simulando
+;;;;;;; (Tablero Analisis ?f ?c ?j)        representa una posición del tablero de análisis con valor de fila ?f
+;;;;;;;                                    , valor de columna ?c y que contiene la ficha ?j
+;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles cuatro en raya encontrados
+;;;;;;;                                    en la simulación de la columna ?contador
+;;;;;;; (PuntosPositivos ?num ?contador)   representa el número ?num de conexiones posibles en la posición
+;;;;;;;                                    de caída en la columna ?contador
+
+(defrule iniciar_resto_analisis
+(Turno M)
+(not (Analizando))
+?X <- (Contador ?num)
+?Y <- (PuntosNegativos ?aux1 ?num1)
+?Z <- (PuntosPositivos ?aux2 ?num2)
+(Caeria ?f 1)
+=>
+(retract ?X ?Y ?Z)
+(assert (Analizando))
+(assert (Contador 1))
+(assert (Tablero Analisis ?f 1 J))
+(assert (PuntosNegativos 0 1))
+(assert (PuntosPositivos 0 1))
+)
 
 
-(defrule comprobar_perimetro_conec_sigui
+;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR EL NÚMERO DE CONEXIONES POSIBLES DE LA MÁQUINA SI SE COLOCA LA FICHA EN LA COLUMNA DEL CONTADOR
+
+;; Estas reglas se activan si estamos analizando y el contador todavía no ha llegado a 8
+;; Con estas reglas se comprueba si existe alguna conexión de dos elementos de la máquina que tenga
+;; como siguiente ó anterior posición en su misma dirección, la posición de caída de la ficha
+;; en la columna que se está simulando. Si alguna conexión de dos elementos de la máquina cumple
+;; estas condicciones, se crea un hecho que aumenta el número que representa estas conexiones en
+;; dos unidades.
+
+;;;;;;;;;;;;;;;; Hecho para representar el aumento de puntos positivos
+
+;;;;;;; (AumentarPuntosPositivos ?num)    representa que se debe aumentar en ?num unidades el hecho que indica
+;;;;;;;                                   el número de posibles conexiones en la columna simulada
+
+(defrule comprobar_perimetro_conectado_sigui
 (Analizando)
 (Contador ?num)
 (test (neq ?num 8))
@@ -617,26 +730,34 @@
 (Siguiente ?f ?num ?d ?f1 ?c1)
 (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M)
 =>
-(assert (PerimetroAumentar 2))
+(assert (AumentarPuntosPositivos 2))
 )
 
-
-
-(defrule aumentar_perimetro
+(defrule comprobar_perimetro_conectado_ante
 (Analizando)
-?Y <- (PerimetroAumentar ?incre)
 (Contador ?num)
-?X <- (Perimetro ?aux ?num)
+(test (neq ?num 8))
+(Caeria ?f ?num)
+(Anterior ?f ?num ?d ?f2 ?c2)
+(Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M)
 =>
-(retract ?X ?Y)
-(bind ?newaux (+ ?aux ?incre))
-(assert (Perimetro ?newaux ?num))
+(assert (AumentarPuntosPositivos 2))
 )
 
+;; Estas reglas se activan si estamos analizando y el contador todavía no ha llegado a 8
+;; Con estas reglas se comprueba si existe alguna posición que contenga una ficha de la máquina y que
+;; tenga como siguiente ó anterior posición en su misma dirección, la posición de caída de la ficha
+;; en la columna que se está simulando. Si alguna posición que contiene una ficha de la de la máquina cumple
+;; estas condicciones, se crea un hecho que aumenta el número que representa estas conexiones en
+;; una unidad. En el caso de que la posición elegida pertenezca a una conexión de dos elementos, no se
+;; tendrá en cuenta, ya que su valor como conexión ya habría sumado en la anterior regla.
 
+;;;;;;;;;;;;;;;; Hecho para representar el aumento de puntos positivos
 
+;;;;;;; (AumentarPuntosPositivos ?num)    representa que se debe aumentar en ?num unidades el hecho que indica
+;;;;;;;                                   el número de posibles conexiones en la columna simulada
 
-(defrule comprobar_perimetro_soli_sigui
+(defrule comprobar_perimetro_solitario_sigui
 (Analizando)
 (Contador ?num)
 (test (neq ?num 8))
@@ -645,26 +766,10 @@
 (not (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M))
 (Tablero Juego ?f1 ?c1 M)
 =>
-(assert (PerimetroAumentar 1))
+(assert (AumentarPuntosPositivos 1))
 )
 
-
-;;;;;;;;;;;;;;
-
-
-(defrule comprobar_perimetro_conec_ante
-(Analizando)
-(Contador ?num)
-(test (neq ?num 8))
-(Caeria ?f ?num)
-(Anterior ?f ?num ?d ?f2 ?c2)
-(Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M)
-=>
-(assert (PerimetroAumentar 2))
-)
-
-
-(defrule comprobar_perimetro_soli_ante
+(defrule comprobar_perimetro_solitario_ante
 (Analizando)
 (Contador ?num)
 (test (neq ?num 8))
@@ -673,12 +778,41 @@
 (not (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M))
 (Tablero Juego ?f2 ?c2 M)
 =>
-(assert (PerimetroAumentar 1))
+(assert (AumentarPuntosPositivos 1))
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR EL NUMERO DE PUNTOS POSITIVOS DE UNA COLUMNA
+
+;; Esta regla consiste en sumar cierto número al hecho que almacena el número de puntos
+;; positivos de un columna en el análisis.
+
+;;;;;;;;;;;;;;;; Hechos para representar la cantidad de puntos positivos
+
+;;;;;;; (PuntosPositivos ?num ?contador)   representa el número ?num de conexiones posibles en la posición
+;;;;;;;                                    de caída en la columna ?contador
+
+(defrule aumentar_perimetro
+(Analizando)
+?Y <- (AumentarPuntosPositivos ?incre)
+(Contador ?num)
+?X <- (PuntosPositivos ?aux ?num)
+=>
+(retract ?X ?Y)
+(bind ?newaux (+ ?aux ?incre))
+(assert (PuntosPositivos ?newaux ?num))
+)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR EL NÚMERO DE POSIBLES VISTORIAS DEL JUGADOR CONTRARIO SI NO SE COLOCA LA FICHA EN LA COLUMNA DEL CONTADOR
+
+;; Estas reglas se activan si al suponer que la máquina no pone la ficha en la posición que indica el contador
+;; y que el jugador contrario coloca en esa posición su ficha, se encuentra una posible victoria del jugador contrario.
+
+;;;;;;;;;;;;;;;; Hecho para representar el aumento de puntos negativos
+
+;;;;;;; (AumentarPuntosNegativos ?num)    representa que se debe aumentar en ?num unidades el hecho que indica
+;;;;;;;                                   el número de posibles victorias del jugador contrario si se coloca una
+;;;;;;;                                   ficha de él en la columna simulada
 
 (defrule comprobar_posible_victoria_delante_analisis
 (Analizando)
@@ -689,21 +823,8 @@
 (Tablero Analisis ?f4 ?c4 _)
 (Caeria ?f4 ?c4)
 =>
-(assert (EncontradoAumentar 1))
+(assert (AumentarPuntosNegativos 1))
 )
-
-
-(defrule aumentar_encontrado
-(Analizando)
-?Y <- (EncontradoAumentar ?incre)
-(Contador ?num)
-?X <- (Encontrado ?aux ?num)
-=>
-(retract ?X ?Y)
-(bind ?newaux (+ ?aux ?incre))
-(assert (Encontrado ?newaux ?num))
-)
-
 
 (defrule comprobar_posible_victoria_detras_analisis
 (Analizando)
@@ -714,8 +835,32 @@
 (Tablero Analisis ?f0 ?c0 _)
 (Caeria ?f0 ?c0)
 =>
-(assert (EncontradoAumentar 1))
+(assert (AumentarPuntosNegativos 1))
 )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR EL NUMERO DE PUNTOS NEGATIVOS DE UNA COLUMNA
+
+;; Esta regla consiste en sumar cierto número al hecho que almacena el número de posibles 
+;; victorias del jugador contrario si se coloca una ficha de él en la columna simulada
+
+;;;;;;;;;;;;;;;; Hechos para representar la cantidad de puntos negativos
+
+;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles victorias cuando se simula
+;;;;;;;                                    la columna ?contador
+
+(defrule aumentar_encontrado
+(Analizando)
+?Y <- (AumentarPuntosNegativos ?incre)
+(Contador ?num)
+?X <- (PuntosNegativos ?aux ?num)
+=>
+(retract ?X ?Y)
+(bind ?newaux (+ ?aux ?incre))
+(assert (PuntosNegativos ?newaux ?num))
+)
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -738,7 +883,7 @@
 ;; posibilito que el contrario pueda hacer 4 en linea
 ;; Sólo se borra el perimetro porque si el encuentro es mayor
 ;; o igual a dos si que habría que colocarla, aunque ya estariamos
-;; ante una derrota asegurada, si estas dos cosas ocurres, Encontrado >= 2
+;; ante una derrota asegurada, si estas dos cosas ocurres, PuntosNegativos >= 2
 ;; y se tenga que vetar es columna
 
 
@@ -751,7 +896,7 @@
 (Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 J)
 (Siguiente ?f3 ?c3 ?d ?f4 ?num)
 (Tablero Analisis ?f4 ?num _)
-?X <- (Perimetro ?aux ?num)
+?X <- (PuntosPositivos ?aux ?num)
 =>
 (retract ?X)
 )
@@ -765,7 +910,7 @@
 (Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 J)
 (Anterior ?f1 ?c1 ?d ?f4 ?num)
 (Tablero Analisis ?f4 ?num _)
-?X <- (Perimetro ?aux ?num)
+?X <- (PuntosPositivos ?aux ?num)
 =>
 (retract ?X)
 )
@@ -843,8 +988,8 @@
 (assert (Tablero Analisis ?f1 ?num _))
 (assert (Tablero Analisis ?f2 ?i J))
 (assert (Contador ?i))
-(assert (Encontrado 0 ?i))
-(assert (Perimetro 0 ?i))
+(assert (PuntosNegativos 0 ?i))
+(assert (PuntosPositivos 0 ?i))
 )
 
 
@@ -885,8 +1030,8 @@
 (Analizando)
 (Contador ?num)
 (test (= ?num 8))
-?X <- (Encontrado ?aux1 ?num1)
-(Encontrado ?aux2 ?num2)
+?X <- (PuntosNegativos ?aux1 ?num1)
+(PuntosNegativos ?aux2 ?num2)
 (test (neq ?num1 ?num2))
 (test (<= ?aux1 ?aux2))
 =>
@@ -898,8 +1043,8 @@
 (Analizando)
 (Contador ?num)
 (test (= ?num 8))
-?X <- (Perimetro ?aux1 ?num1)
-(Perimetro ?aux2 ?num2)
+?X <- (PuntosPositivos ?aux1 ?num1)
+(PuntosPositivos ?aux2 ?num2)
 (test (neq ?num1 ?num2))
 (test (<= ?aux1 ?aux2))
 =>
@@ -914,7 +1059,7 @@
 (defrule ganar_partida
 (declare (salience 9998))
 ?Y <- (Turno M)
-(ganaria M ?c)
+(PosibleVictoria M ?c)
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
@@ -925,7 +1070,7 @@
 (defrule salvar_partida
 (declare (salience -2))
 ?Y <- (Turno M)
-(ganaria J ?c)
+(PosibleVictoria J ?c)
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
@@ -937,7 +1082,7 @@
 (defrule salvar_partida_analisis
 (declare (salience -3))
 ?Y <- (Turno M)
-(Encontrado ?num ?c)
+(PuntosNegativos ?num ?c)
 (test (>= ?num 2))
 ?X <- (Analizando)
 =>
@@ -950,7 +1095,7 @@
 (defrule mejor_posicion_analisis
 (declare (salience -4))
 ?Y <- (Turno M)
-(Perimetro ?num ?c)
+(PuntosPositivos ?num ?c)
 (test (neq ?num 0))
 ?X <- (Analizando)
 =>
@@ -962,7 +1107,7 @@
 (defrule mejor_posicion_analisis_cuando_todo_blanco
 (declare (salience -5))
 ?Y <- (Turno M)
-(Perimetro ?num ?c)
+(PuntosPositivos ?num ?c)
 (test (eq ?num 0))
 ?X <- (Analizando)
 =>
