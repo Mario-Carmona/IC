@@ -471,7 +471,7 @@
 ;;;;;;;                                         que empieza en la posición (?f1,?c1) y termina en la posición (?f2,?c2)
 ;;;;;;;                                         siguiendo la dirección ?d
 
-(defrule comprobar_conectaniveldo_delante
+(defrule comprobar_conectado_delante
 (Tablero ?t ?f1 ?c1 ?j)
 (test (neq ?j _))
 (Siguiente ?f1 ?c1 ?d ?f2 ?c2)
@@ -565,6 +565,28 @@
 (Caeria ?f0 ?c0)
 =>
 (assert (PosibleVictoria ?j ?c0))
+)
+
+(defrule comprobar_posible_victoria_en_medio_delante
+(Conectado Juego ?d ?f1 ?c1 ?f2 ?c2 ?j)
+(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
+(Tablero Juego ?f3 ?c3 _)
+(Caeria ?f3 ?c3)
+(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
+(Tablero Juego ?f4 ?c4 ?j)
+=>
+(assert (PosibleVictoria ?j ?c3))
+)
+
+(defrule comprobar_posible_victoria_en_medio_detras
+(Conectado Juego ?d ?f2 ?c2 ?f3 ?c3 ?j)
+(Anterior ?f2 ?c2 ?d ?f1 ?c1)
+(Tablero Juego ?f1 ?c1 _)
+(Caeria ?f1 ?c1)
+(Anterior ?f1 ?c1 ?d ?f0 ?c0)
+(Tablero Juego ?f0 ?c0 ?j)
+=>
+(assert (PosibleVictoria ?j ?c1))
 )
 
 
@@ -728,6 +750,7 @@
 (test (neq ?num 8))
 (Caeria ?f ?num)
 (Siguiente ?f ?num ?d ?f1 ?c1)
+(test (neq ?d vertical))
 (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M)
 =>
 (assert (AumentarPuntosPositivos 2))
@@ -743,6 +766,7 @@
 =>
 (assert (AumentarPuntosPositivos 2))
 )
+
 
 ;; Estas reglas se activan si estamos analizando y el contador todavía no ha llegado a 8
 ;; Con estas reglas se comprueba si existe alguna posición que contenga una ficha de la máquina y que
@@ -763,6 +787,7 @@
 (test (neq ?num 8))
 (Caeria ?f ?num)
 (Siguiente ?f ?num ?d ?f1 ?c1)
+(test (neq ?d vertical))
 (not (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M))
 (Tablero Juego ?f1 ?c1 M)
 =>
@@ -781,6 +806,7 @@
 (assert (AumentarPuntosPositivos 1))
 )
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR EL NUMERO DE PUNTOS POSITIVOS DE UNA COLUMNA
 
 ;; Esta regla consiste en sumar cierto número al hecho que almacena el número de puntos
@@ -791,7 +817,7 @@
 ;;;;;;; (PuntosPositivos ?num ?contador)   representa el número ?num de conexiones posibles en la posición
 ;;;;;;;                                    de caída en la columna ?contador
 
-(defrule aumentar_perimetro
+(defrule aumentar_puntos_positivos
 (Analizando)
 ?Y <- (AumentarPuntosPositivos ?incre)
 (Contador ?num)
@@ -838,6 +864,34 @@
 (assert (AumentarPuntosNegativos 1))
 )
 
+(defrule comprobar_posible_victoria_en_medio_delante_analisis
+(Analizando)
+(Contador ?num)
+(test (neq ?num 8))
+(Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 ?j)
+(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
+(Tablero Analisis ?f3 ?c3 _)
+(Caeria ?f3 ?c3)
+(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
+(Tablero Analisis ?f4 ?c4 ?j)
+=>
+(assert (AumentarPuntosNegativos 1))
+)
+
+(defrule comprobar_posible_victoria_en_medio_detras_analisis
+(Analizando)
+(Contador ?num)
+(test (neq ?num 8))
+(Conectado Analisis ?d ?f2 ?c2 ?f3 ?c3 ?j)
+(Anterior ?f2 ?c2 ?d ?f1 ?c1)
+(Tablero Analisis ?f1 ?c1 _)
+(Caeria ?f1 ?c1)
+(Anterior ?f1 ?c1 ?d ?f0 ?c0)
+(Tablero Analisis ?f0 ?c0 ?j)
+=>
+(assert (AumentarPuntosNegativos 1))
+)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR EL NUMERO DE PUNTOS NEGATIVOS DE UNA COLUMNA
 
@@ -849,7 +903,7 @@
 ;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles victorias cuando se simula
 ;;;;;;;                                    la columna ?contador
 
-(defrule aumentar_encontrado
+(defrule aumentar_puntos_negativos
 (Analizando)
 ?Y <- (AumentarPuntosNegativos ?incre)
 (Contador ?num)
@@ -1057,61 +1111,92 @@
 
 
 (defrule ganar_partida
-(declare (salience 9998))
+(declare (salience -2))
 ?Y <- (Turno M)
 (PosibleVictoria M ?c)
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
-(printout t "JUEGO en la columna (con criterio) " ?c crlf)
 (assert (Juega M ?c))
 )
 
 (defrule salvar_partida
-(declare (salience -2))
+(declare (salience -3))
 ?Y <- (Turno M)
-(PosibleVictoria J ?c)
+?Z <- (PosibleVictoria J ?c)
 ?X <- (Analizando)
 =>
-(retract ?X ?Y)
-(printout t "JUEGO en la columna (con criterio) " ?c crlf)
+(retract ?X ?Y ?Z)
 (assert (Juega M ?c))
 )
 
 
 (defrule salvar_partida_analisis
-(declare (salience -3))
+(declare (salience -4))
 ?Y <- (Turno M)
 (PuntosNegativos ?num ?c)
 (test (>= ?num 2))
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
-(printout t "JUEGO en la columna (con criterio) " ?c crlf)
 (assert (Juega M ?c))
 )
 
 
 (defrule mejor_posicion_analisis
-(declare (salience -4))
+(declare (salience -5))
 ?Y <- (Turno M)
 (PuntosPositivos ?num ?c)
 (test (neq ?num 0))
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
-(printout t "JUEGO en la columna (con criterio) " ?c crlf)
 (assert (Juega M ?c))
 )
 
-(defrule mejor_posicion_analisis_cuando_todo_blanco
-(declare (salience -5))
+
+(defrule mejor_posicion_analisis_cuando_todo_el_tablero_en_blanco
+(declare (salience -6))
 ?Y <- (Turno M)
-(PuntosPositivos ?num ?c)
-(test (eq ?num 0))
+(not (Tablero Juego ?f ?c M|J))
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
-(printout t "JUEGO en la columna (con criterio) " 4 crlf)
 (assert (Juega M 4))
+)
+
+;; Si PuntosPositivos y ya hay fichas en el tablero se ejecuta la elección al azar
+
+(defrule eleccion_al_azar
+(declare (salience -7))
+?Y <- (Turno M)
+?X <- (Analizando)
+=>
+(retract ?X ?Y)
+(assert (Juega M (random 1 7)))
+)
+
+(defrule comprobar_posicion_invalida
+(declare (salience 9999))
+?X <- (Juega M ?num)
+(Caeria ?f ?num)
+(test (eq ?f 0))
+=>
+(retract ?X)
+(assert (VolverAElegir))
+)
+
+(defrule volver_a_elegir_al_azar
+(declare (salience 9999))
+?X <- (VolverAElegir)
+=>
+(retract ?X)
+(assert (Juega M (random 1 7)))
+)
+
+(defrule mensaje_eleccion
+(declare (salience 9998))
+(Juega M ?num)
+=>
+(printout t "JUEGO en la columna (con criterio) " ?num crlf)
 )
