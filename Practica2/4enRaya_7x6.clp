@@ -277,7 +277,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;  DETECTAR EMPATE
 
 (defrule empate
-(declare (salience -9999))
+(declare (salience 9999))
 (Turno ?X)
 (Tablero Juego 1 1 M|J)
 (Tablero Juego 1 2 M|J)
@@ -287,6 +287,7 @@
 (Tablero Juego 1 6 M|J)
 (Tablero Juego 1 7 M|J)
 =>
+(retract ?X)
 (printout t "EMPATE! Se ha llegado al final del juego sin que nadie gane" crlf)
 )
 
@@ -650,7 +651,7 @@
 (Tablero ?t ?f2 ?c2 ?j2)
 (Tablero ?t ?f3 ?c3 ?j3)
 (Tablero ?t ?f4 ?c4 ?j4)
-(test (or (or (and (neq ?pos ?c1) (eq ?f1 _)) (and (neq ?pos ?c2) (eq ?f2 _))) (or (and (neq ?pos ?c3) (eq ?f3 _)) (and (neq ?pos ?c4) (eq ?f4 _)))))
+(test (or (or (and (neq ?pos ?c1) (eq ?j1 _)) (and (neq ?pos ?c2) (eq ?j2 _))) (or (and (neq ?pos ?c3) (eq ?j3 _)) (and (neq ?pos ?c4) (eq ?j4 _)))))
 =>
 (retract ?X)
 )
@@ -838,7 +839,7 @@
 =>
 (retract ?X ?Y ?Z ?T)
 (assert (Analizando))
-(assert (Contador 2))
+(assert (Contador 1))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1129,19 +1130,33 @@
 ;;;;;;;                                    que en la anterior iteración tenía la ficha del Jugador.
 ;;;;;;; (Contador ?i)                      representa el nuevo contador del análisis. Se está iterando la columna ?i
 
-(defrule ultimo_contador
+(defrule ultimo_contador_sin_saltar
 (declare (salience -1))
 (Analizando)
 ?X <- (Contador ?num)
 (Incre ?num ?i)
 (test (= ?i 8))
 (Caeria ?f ?num)
+(test (neq ?f 0))
 ?Y <- (Tablero Analisis_J ?f ?num J)
 ?Z <- (Tablero Analisis_M ?f ?num M)
 =>
 (retract ?X ?Y ?Z)
 (assert (Tablero Analisis_J ?f ?num _))
 (assert (Tablero Analisis_M ?f ?num _))
+(assert (Contador ?i))
+)
+
+(defrule ultimo_contador_saltando
+(declare (salience -1))
+(Analizando)
+?X <- (Contador ?num)
+(Incre ?num ?i)
+(test (= ?i 8))
+(Caeria ?f ?num)
+(test (eq ?f 0))
+=>
+(retract ?X)
 (assert (Contador ?i))
 )
 
@@ -1281,66 +1296,14 @@
 (assert (Juega M ?c))
 )
 
-
 (defrule mejor_posicion_analisis
 (declare (salience -6))
 ?Y <- (Turno M)
 (Puntuacion ?num ?c)
-(test (neq ?num 0))
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
 (assert (Juega M ?c))
-)
-
-;; Si PuntosPositivos y ya hay fichas en el tablero se ejecuta la elección al azar
-
-(defrule eleccion_al_azar
-(declare (salience -7))
-?Y <- (Turno M)
-?X <- (Analizando)
-=>
-(retract ?X ?Y)
-(assert (AlAzar))
-(assert (Juega M (random 1 7)))
-)
-
-(defrule comprobar_posicion_invalida
-(declare (salience 9999))
-(AlAzar)
-?X <- (Juega M ?num)
-(Caeria ?f ?num)
-(test (eq ?f 0))
-=>
-(retract ?X)
-(assert (VolverAElegir))
-)
-
-(defrule volver_a_elegir_al_azar
-(declare (salience 9999))
-(AlAzar)
-?X <- (VolverAElegir)
-=>
-(retract ?X)
-(assert (Juega M (random 1 7)))
-)
-
-;; Esta regla tiene 1 de priorida menos que las comprobaciones de si la posición
-;; al azar es buena, con esta regla se elimina el hecho que indica que la elección
-;; se ha hecho al azar, y que posibilita que se pueda comprobar si la posición al azar es
-;; buena, e impide que si la posición no se ha elegido al azar se lanze la regla de comprobación
-;; después de haber aumentado la posición de caida, estas situaciones pueden ocurrir cuando 
-;; la posición que no ha sido elegida al azar es la última posición de un columna, por lo que
-;; al aumentar la posición de caida y ponerse a 0, podría hacer que salte la regla de comprobación
-;; y cambie la columna en la que se introduce la ficha, pero para eso está el hecho "AlAzar",
-;; para indicar a la comprobación cuando debe lanzarse, que es después de haber elegido una posición
-;; al azar.
-
-(defrule eliminar_hecho_al_azar
-(declare (salience 9998))
-?X <- (AlAzar)
-=>
-(retract ?X)
 )
 
 (defrule mensaje_eleccion
