@@ -529,22 +529,6 @@
 )
 
 
-;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR QUE CONEXIONES DE DOS ELEMENTOS ESTAN INCLUIDAS EN CONEXIONES DE TRES ELEMENTOS
-
-;; Esta regla se lanza cuando existe una conexión de dos elementos, cuyos elementos
-;; también forman parte de otra conexión de tres elementos del mismo jugador. Al
-;; lanzarse la regla, como consecuencia se elimina la conexión de dos elementos.
-
-(defrule eliminar_conexion_inclu_en_otra
-?X <- (Conectado ?t ?d ?fa1 ?ca1 ?fa2 ?ca2 ?j)
-(Tres_en_linea ?t ?d ?fb1 ?cb1 ?fb3 ?cb3 ?j)
-(test (and (<= ?fb1 ?fa1) (<= ?fa1 ?fb3)))
-(test (and (<= ?cb1 ?ca1) (<= ?ca1 ?cb3)))
-=>
-(retract ?X)
-)
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR SITUACION EN QUE ESTAMOS A UNA FICHA DE GANAR
 
 ;; Estas reglas se lanzan cuando existe una de estas cuatro situaciones (las reglas que tienen en cuenta cada
@@ -571,43 +555,43 @@
 ;;;;;;;                            una ficha en la columna ?c
 
 (defrule comprobar_posible_victoria_delante
-(Tres_en_linea Juego ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
 (Siguiente ?f3 ?c3 ?d ?f4 ?c4)
-(Tablero Juego ?f4 ?c4 _)
+(Tablero ?t ?f4 ?c4 _)
 (Caeria ?f4 ?c4)
 =>
-(assert (PosibleVictoria ?j ?c4))
+(assert (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 ?j ?c4))
 )
 
 (defrule comprobar_posible_victoria_detras
-(Tres_en_linea Juego ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
 (Anterior ?f1 ?c1 ?d ?f0 ?c0)
-(Tablero Juego ?f0 ?c0 _)
+(Tablero ?t ?f0 ?c0 _)
 (Caeria ?f0 ?c0)
 =>
-(assert (PosibleVictoria ?j ?c0))
+(assert (PosibleVictoria ?t ?d ?f0 ?c0 ?f3 ?c3 ?j ?c0))
 )
 
 (defrule comprobar_posible_victoria_en_medio_delante
-(Conectado Juego ?d ?f1 ?c1 ?f2 ?c2 ?j)
+(Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j)
 (Siguiente ?f2 ?c2 ?d ?f3 ?c3)
-(Tablero Juego ?f3 ?c3 _)
+(Tablero ?t ?f3 ?c3 _)
 (Caeria ?f3 ?c3)
 (Siguiente ?f3 ?c3 ?d ?f4 ?c4)
-(Tablero Juego ?f4 ?c4 ?j)
+(Tablero ?t ?f4 ?c4 ?j)
 =>
-(assert (PosibleVictoria ?j ?c3))
+(assert (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 ?j ?c3))
 )
 
 (defrule comprobar_posible_victoria_en_medio_detras
-(Conectado Juego ?d ?f2 ?c2 ?f3 ?c3 ?j)
+(Conectado ?t ?d ?f2 ?c2 ?f3 ?c3 ?j)
 (Anterior ?f2 ?c2 ?d ?f1 ?c1)
-(Tablero Juego ?f1 ?c1 _)
+(Tablero ?t ?f1 ?c1 _)
 (Caeria ?f1 ?c1)
 (Anterior ?f1 ?c1 ?d ?f0 ?c0)
-(Tablero Juego ?f0 ?c0 ?j)
+(Tablero ?t ?f0 ?c0 ?j)
 =>
-(assert (PosibleVictoria ?j ?c1))
+(assert (PosibleVictoria ?t ?d ?f0 ?c0 ?f3 ?c3 ?j ?c1))
 )
 
 
@@ -620,17 +604,78 @@
 ;; borra el hecho que indica la posibilidad de ganar. Esta regla tiene la máxima prioridad para
 ;; evitar errores en la toma de decisiones a la hora de colocar la ficha por parte de la máquina.
 
-(defrule retractar_posible_victoria
+;; Se comprueba si la columna donde hay que colocar la ficha ?pos su posición de caida sigue 
+;; siendo la misma de cuando se creo el hecho posible victoria, este es el caso en que se ha colocado
+;; una ficha del jugador contrario y por eso ha dejado de ser posible victoria
+
+(defrule retractar_posible_victoria_M
 (declare (salience 9999))
-?X <- (PosibleVictoria ?j1 ?c4)
-(Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j1)
-(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
-(Tablero ?t ?f4 ?c4 ?j2)
-(test (and (neq ?j2 ?j1) (neq ?j2 _)))
+?X <- (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 M ?pos)
+(Caeria ?f ?pos)
+(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
+(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
+(Tablero ?t ?f1 ?c1 ?j1)
+(Tablero ?t ?f2 ?c2 ?j2)
+(Tablero ?t ?f3 ?c3 ?j3)
+(Tablero ?t ?f4 ?c4 ?j4)
+(test (or (or (eq ?j1 J) (eq ?j2 J)) (or (eq ?j3 J) (eq ?j4 J))))
 =>
 (retract ?X)
 )
 
+(defrule retractar_posible_victoria_J
+(declare (salience 9999))
+?X <- (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 J ?pos)
+(Caeria ?f ?pos)
+(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
+(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
+(Tablero ?t ?f1 ?c1 ?j1)
+(Tablero ?t ?f2 ?c2 ?j2)
+(Tablero ?t ?f3 ?c3 ?j3)
+(Tablero ?t ?f4 ?c4 ?j4)
+(test (or (or (eq ?j1 M) (eq ?j2 M)) (or (eq ?j3 M) (eq ?j4 M))))
+=>
+(retract ?X)
+)
+
+;; Aqui se trata de eliminar las posibles victorias que han dejado de serlo al cambiar
+;; de iteración en el análisis, al mover la ficha que se introduce en el análisis.
+
+(defrule retractar_posible_victoria_temporal
+(declare (salience 9999))
+?X <- (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 ?j ?pos)
+(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
+(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
+(Tablero ?t ?f1 ?c1 ?j1)
+(Tablero ?t ?f2 ?c2 ?j2)
+(Tablero ?t ?f3 ?c3 ?j3)
+(Tablero ?t ?f4 ?c4 ?j4)
+(test (or (or (and (neq ?pos ?c1) (eq ?f1 _)) (and (neq ?pos ?c2) (eq ?f2 _))) (or (and (neq ?pos ?c3) (eq ?f3 _)) (and (neq ?pos ?c4) (eq ?f4 _)))))
+=>
+(retract ?X)
+)
+
+(defrule retractar_tres_en_linea
+(declare (salience 9999))
+?X <- (Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
+(Tablero ?t ?f1 ?c1 ?j1)
+(Tablero ?t ?f2 ?c2 ?j2)
+(Tablero ?t ?f3 ?c3 ?j3)
+(test (or (or (neq ?j1 ?j) (neq ?j2 ?j)) (neq ?j3 ?j)))
+=>
+(retract ?X)
+)
+
+(defrule retractar_conectado
+(declare (salience 9999))
+?X <- (Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j)
+(Tablero ?t ?f1 ?c1 ?j1)
+(Tablero ?t ?f2 ?c2 ?j2)
+(test (or (neq ?j1 ?j) (neq ?j2 ?j)))
+=>
+(retract ?X)
+)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -651,11 +696,18 @@
 ;;;;;;;                               ficha del tipo ?j, que puede ser de la máquina, del jugador, ó
 ;;;;;;;                               estar en blanco. 
 
-(defrule crear_tablero_analisis
+(defrule crear_tablero_analisis_J
 (Tablero Juego ?f ?c ?j1)
-(not (Tablero Analisis ?f ?c ?j2))
+(not (Tablero Analisis_J ?f ?c ?j2))
 =>
-(assert (Tablero Analisis ?f ?c ?j1))
+(assert (Tablero Analisis_J ?f ?c ?j1))
+)
+
+(defrule crear_tablero_analisis_M
+(Tablero Juego ?f ?c ?j1)
+(not (Tablero Analisis_M ?f ?c ?j2))
+=>
+(assert (Tablero Analisis_M ?f ?c ?j1))
 )
 
 
@@ -672,13 +724,22 @@
 ;;;;;;;                               ficha del tipo ?j, que puede ser de la máquina, del jugador, ó
 ;;;;;;;                               estar en blanco. 
 
-(defrule actualizar_tablero_analisis
+(defrule actualizar_tablero_analisis_J
 (Tablero Juego ?f ?c ?j1)
-?X <- (Tablero Analisis ?f ?c ?j2)
+?X <- (Tablero Analisis_J ?f ?c ?j2)
 (test (and (neq ?j1 _) (neq ?j1 ?j2)))
 =>
 (retract ?X)
-(assert (Tablero Analisis ?f ?c ?j1))
+(assert (Tablero Analisis_J ?f ?c ?j1))
+)
+
+(defrule actualizar_tablero_analisis_M
+(Tablero Juego ?f ?c ?j1)
+?X <- (Tablero Analisis_M ?f ?c ?j2)
+(test (and (neq ?j1 _) (neq ?j1 ?j2)))
+=>
+(retract ?X)
+(assert (Tablero Analisis_M ?f ?c ?j1))
 )
 
 
@@ -712,12 +773,17 @@
 (not (Analizando))
 (not (Contador ?num))
 (Caeria ?f 1)
+?X <- (Tablero Analisis_J ?f 1 _)
+?Y <- (Tablero Analisis_M ?f 1 _)
 =>
+(retract ?X ?Y)
 (assert (Analizando))
 (assert (Contador 1))
-(assert (Tablero Analisis ?f 1 J))
+(assert (Tablero Analisis_J ?f 1 J))
+(assert (Tablero Analisis_M ?f 1 M))
 (assert (PuntosNegativos 0 1))
 (assert (PuntosPositivos 0 1))
+(assert (Puntuacion 0 1))
 )
 
 ;; Esta regla inicia el proceso de análisis desde el segundo turno de la máquina en adelante.
@@ -744,15 +810,20 @@
 ?X <- (Contador ?num)
 ?Y <- (PuntosNegativos ?aux1 ?num1)
 ?Z <- (PuntosPositivos ?aux2 ?num2)
+?T <- (Puntuacion ?aux3 ?num3)
 (Caeria ?f 1)
+?R <- (Tablero Analisis_J ?f 1 _)
+?C <- (Tablero Analisis_M ?f 1 _)
 (test (<> ?f 0))
 =>
-(retract ?X ?Y ?Z)
+(retract ?X ?Y ?Z ?T ?R ?C)
 (assert (Analizando))
 (assert (Contador 1))
-(assert (Tablero Analisis ?f 1 J))
+(assert (Tablero Analisis_J ?f 1 J))
+(assert (Tablero Analisis_M ?f 1 M))
 (assert (PuntosNegativos 0 1))
 (assert (PuntosPositivos 0 1))
+(assert (Puntuacion 0 1))
 )
 
 (defrule iniciar_resto_analisis_saltando
@@ -761,88 +832,46 @@
 ?X <- (Contador ?num)
 ?Y <- (PuntosNegativos ?aux1 ?num1)
 ?Z <- (PuntosPositivos ?aux2 ?num2)
+?T <- (Puntuacion ?aux3 ?num3)
 (Caeria ?f 1)
 (test (= ?f 0))
 =>
-(retract ?X ?Y ?Z)
+(retract ?X ?Y ?Z ?T)
 (assert (Analizando))
 (assert (Contador 2))
 )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR EL NÚMERO DE PUNTOS POSITIVOS EN LA COLUMNA DEL CONTADOR
 
-;; Estas reglas se activan si estamos analizando y el contador todavía no ha llegado a 8.
-;; Con estas reglas se comprueba si existe alguna conexión de dos elementos de la máquina que tenga
-;; como siguiente ó anterior posición en su misma dirección, la posición de caída de la ficha
-;; en la columna que se está simulando. Si alguna conexión de dos elementos de la máquina cumple
-;; estas condicciones, se crea un hecho que aumenta los puntos positivos de la columna en
-;; dos unidades.
-
-;;;;;;;;;;;;;;;; Hecho para representar el aumento de puntos positivos
-
-;;;;;;; (AumentarPuntosPositivos ?num)    representa que se debe aumentar en ?num unidades los puntos positivos
-
-(defrule comprobar_perimetro_conectado_sigui
+(defrule aumentar_puntuacion
 (Analizando)
 (Contador ?num)
-(test (neq ?num 8))
 (Caeria ?f ?num)
-(Siguiente ?f ?num ?d ?f1 ?c1)
-(test (neq ?d vertical))
-(Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M)
+(Tablero Analisis_M ?f1 ?c1 M|_)
+(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
+(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
+(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
+(Tablero Analisis_M ?f2 ?c2 M|_)
+(Tablero Analisis_M ?f3 ?c3 M|_)
+(Tablero Analisis_M ?f4 ?c4 M|_)
+(test (or (or (and (eq ?f ?f1) (eq ?num ?c1)) (and (eq ?f ?f2) (eq ?num ?c2))) (or (and (eq ?f ?f3) (eq ?num ?c3)) (and (eq ?f ?f4) (eq ?num ?c4)))))
 =>
-(assert (AumentarPuntosPositivos 2))
+(assert (IncrePuntuacion))
 )
 
-(defrule comprobar_perimetro_conectado_ante
-(Analizando)
+(defrule incre_puntuacion
 (Contador ?num)
-(test (neq ?num 8))
-(Caeria ?f ?num)
-(Anterior ?f ?num ?d ?f2 ?c2)
-(Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M)
+?X <- (IncrePuntuacion)
+?Y <- (Puntuacion ?aux ?num)
 =>
-(assert (AumentarPuntosPositivos 2))
+(retract ?X ?Y)
+(bind ?newaux (+ ?aux 1))
+(assert (Puntuacion ?newaux ?num))
 )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Estas reglas se activan si estamos analizando y el contador todavía no ha llegado a 8.
-;; Con estas reglas se comprueba si existe alguna posición que contenga una ficha de la máquina y que
-;; tenga como siguiente ó anterior posición en su misma dirección, la posición de caída de la ficha
-;; en la columna que se está simulando. Si alguna posición que contiene una ficha de la de la máquina cumple
-;; estas condicciones, se crea un hecho que aumenta los puntos positivos en una unidad. En el caso de que 
-;; la posición elegida pertenezca a una conexión de dos elementos, no se tendrá en cuenta, ya que su valor 
-;; como conexión ya habría sumado en las anteriores reglas.
-
-;;;;;;;;;;;;;;;; Hecho para representar el aumento de puntos positivos
-
-;;;;;;; (AumentarPuntosPositivos ?num)    representa que se debe aumentar en ?num unidades los puntos positivos
-
-(defrule comprobar_perimetro_solitario_sigui
-(Analizando)
-(Contador ?num)
-(test (neq ?num 8))
-(Caeria ?f ?num)
-(Siguiente ?f ?num ?d ?f1 ?c1)
-(test (neq ?d vertical))
-(not (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M))
-(Tablero Juego ?f1 ?c1 M)
-=>
-(assert (AumentarPuntosPositivos 1))
-)
-
-(defrule comprobar_perimetro_solitario_ante
-(Analizando)
-(Contador ?num)
-(test (neq ?num 8))
-(Caeria ?f ?num)
-(Anterior ?f ?num ?d ?f2 ?c2)
-(not (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 M))
-(Tablero Juego ?f2 ?c2 M)
-=>
-(assert (AumentarPuntosPositivos 1))
-)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR EL NUMERO DE PUNTOS POSITIVOS DE UNA COLUMNA
@@ -857,75 +886,20 @@
 
 (defrule aumentar_puntos_positivos
 (Analizando)
-?Y <- (AumentarPuntosPositivos ?incre)
+(PosibleVictoria Analisis_M ?d ?f1 ?c1 ?f4 ?c4 M ?pos)
 (Contador ?num)
-?X <- (PuntosPositivos ?aux ?num)
+=>
+(assert (IncrePuntosPositivos))
+)
+
+(defrule incre_puntos_positivos
+(Contador ?num)
+?X <- (IncrePuntosPositivos)
+?Y <- (PuntosPositivos ?aux ?num)
 =>
 (retract ?X ?Y)
-(bind ?newaux (+ ?aux ?incre))
+(bind ?newaux (+ ?aux 1))
 (assert (PuntosPositivos ?newaux ?num))
-)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR EL NÚMERO DE PUNTOS NEGATIVOS EN LA COLUMNA DEL CONTADOR
-
-;; Estas reglas se activan si la máquina no pone la ficha en la posición que indica el contador,
-;; el jugador contrario coloca en esa posición su ficha y se encuentra una posible victoria del jugador contrario.
-
-;;;;;;;;;;;;;;;; Hecho para representar el aumento de puntos negativos
-
-;;;;;;; (AumentarPuntosNegativos ?num)    representa que se debe aumentar en ?num unidades los puntos negativos
-
-(defrule comprobar_posible_victoria_delante_analisis
-(Analizando)
-(Contador ?num)
-(test (neq ?num 8))
-(Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 J)
-(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
-(Tablero Analisis ?f4 ?c4 _)
-(Caeria ?f4 ?c4)
-=>
-(assert (AumentarPuntosNegativos 1))
-)
-
-(defrule comprobar_posible_victoria_detras_analisis
-(Analizando)
-(Contador ?num)
-(test (neq ?num 8))
-(Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 J)
-(Anterior ?f1 ?c1 ?d ?f0 ?c0)
-(Tablero Analisis ?f0 ?c0 _)
-(Caeria ?f0 ?c0)
-=>
-(assert (AumentarPuntosNegativos 1))
-)
-
-(defrule comprobar_posible_victoria_en_medio_delante_analisis
-(Analizando)
-(Contador ?num)
-(test (neq ?num 8))
-(Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 ?j)
-(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
-(Tablero Analisis ?f3 ?c3 _)
-(Caeria ?f3 ?c3)
-(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
-(Tablero Analisis ?f4 ?c4 ?j)
-=>
-(assert (AumentarPuntosNegativos 1))
-)
-
-(defrule comprobar_posible_victoria_en_medio_detras_analisis
-(Analizando)
-(Contador ?num)
-(test (neq ?num 8))
-(Conectado Analisis ?d ?f2 ?c2 ?f3 ?c3 ?j)
-(Anterior ?f2 ?c2 ?d ?f1 ?c1)
-(Tablero Analisis ?f1 ?c1 _)
-(Caeria ?f1 ?c1)
-(Anterior ?f1 ?c1 ?d ?f0 ?c0)
-(Tablero Analisis ?f0 ?c0 ?j)
-=>
-(assert (AumentarPuntosNegativos 1))
 )
 
 
@@ -941,33 +915,23 @@
 
 (defrule aumentar_puntos_negativos
 (Analizando)
-?Y <- (AumentarPuntosNegativos ?incre)
+(PosibleVictoria Analisis_J ?d ?f1 ?c1 ?f4 ?c4 J ?pos)
 (Contador ?num)
-?X <- (PuntosNegativos ?aux ?num)
+=>
+(assert (IncrePuntosNegativos))
+)
+
+(defrule incre_puntos_negativos
+(Contador ?num)
+?X <- (IncrePuntosNegativos)
+?Y <- (PuntosNegativos ?aux ?num)
 =>
 (retract ?X ?Y)
-(bind ?newaux (+ ?aux ?incre))
+(bind ?newaux (+ ?aux 1))
 (assert (PuntosNegativos ?newaux ?num))
 )
 
-
-;;;;;;;;;;;;;;;;;;;;;;;  ELIMINAR DEDUCIONES AUXILIARES EN CADA ITERACION
-
-;; Esta regla indica el inicio del proceso de eliminación de todas las deduciones
-;; auxiliares creadas en cada iteración. Tiene una prioridad de -1 para que se lanze 
-;; después de haber realizado todas las deduciones realizadas en cada iteración
-
-;;;;;;;;;;;;;;;; Hechos para representar el inicio del proceso de eliminación
-
-;;;;;;; (Eliminar)   representa que se está realizando el proceso de eliminación
-
-(defrule iniciar_eliminar
-(declare (salience -1))
-(Analizando)
-(Contador ?num)
-=>
-(assert (Eliminar))
-)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Estas reglas impide que al colocar una ficha de la Máquina, se cree una posible
 ;; victoria del Jugador al poder colocar una ficha en una nueva posición. Si sucede 
@@ -979,84 +943,93 @@
 ;; antes que la regla que indica el final del proceso de eliminación.
 
 (defrule vetar_jugada_analisis_sigui
-(declare (salience 3))
+(declare (salience 1))
 (Analizando)
 (Contador ?num)
 (Caeria ?f5 ?num)
 (Decre ?f5 ?f4)
-(Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 J)
+(Tres_en_linea Analisis_M ?d ?f1 ?c1 ?f3 ?c3 J)
 (Siguiente ?f3 ?c3 ?d ?f4 ?num)
-(Tablero Analisis ?f4 ?num _)
-?X <- (PuntosPositivos ?aux ?num)
+(Tablero Analisis_M ?f4 ?num _)
+?X <- (Puntuacion ?aux1 ?num)
+?Y <- (PuntosPositivos ?aux2 ?num)
 =>
-(retract ?X)
+(retract ?X ?Y)
 )
 
 (defrule vetar_jugada_analisis_ante
-(declare (salience 3))
+(declare (salience 1))
 (Analizando)
 (Contador ?num)
 (Caeria ?f5 ?num)
 (Decre ?f5 ?f4)
-(Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 J)
+(Tres_en_linea Analisis_M ?d ?f1 ?c1 ?f3 ?c3 J)
 (Anterior ?f1 ?c1 ?d ?f4 ?num)
-(Tablero Analisis ?f4 ?num _)
-?X <- (PuntosPositivos ?aux ?num)
+(Tablero Analisis_M ?f4 ?num _)
+?X <- (Puntuacion ?aux1 ?num)
+?Y <- (PuntosPositivos ?aux2 ?num)
 =>
-(retract ?X)
+(retract ?X ?Y)
 )
 
-;; Esta regla elimina los hechos que representan 2 fichas del Jugador conectadas,
-;; creados a partir de la ficha introducida por el análisis.
-;; Se eliminan sólo las del Jugador porque son las que se crean al colocar la ficha
-;; del Jugador en la columna que se está simulando. Tiene una prioridad de 3 para que se lanze 
-;; antes que la regla que indica el final del proceso de eliminación.
-
-(defrule eliminar_conectados_contador
-(declare (salience 3))
+(defrule vetar_jugada_analisis_en_medio_sigui
+(declare (salience 1))
 (Analizando)
-(Eliminar)
 (Contador ?num)
-(Caeria ?f ?num)
-?X <- (Conectado Analisis ?d ?f1 ?c1 ?f2 ?c2 J)
-(test (or (and (= ?f1 ?f) (= ?c1 ?num)) (and (= ?f2 ?f) (= ?c2 ?num))))
+(Caeria ?f5 ?num)
+(Decre ?f5 ?f3)
+(Conectado Analisis_M ?d ?f1 ?c1 ?f2 ?c2 J)
+(Siguiente ?f2 ?c2 ?d ?f3 ?num)
+(Tablero Analisis_M ?f3 ?num _)
+(Siguiente ?f3 ?num ?d ?f4 ?c4)
+(Tablero Analisis_M ?f4 ?c4 J)
+?X <- (Puntuacion ?aux1 ?num)
+?Y <- (PuntosPositivos ?aux2 ?num)
 =>
-(retract ?X)
+(retract ?X ?Y)
 )
 
-;; Esta regla elimina los hechos que representan 3 fichas del Jugador conectadas,
-;; creados a partir de la ficha introducida por el análisis.
-;; Se eliminan sólo las del Jugador porque son las que se crean al colocar la ficha
-;; del Jugador en la columna que se está simulando. Tiene una prioridad de 3 para que se lanze 
-;; antes que la regla que indica el final del proceso de eliminación.
-
-(defrule eliminar_3_en_linea_contador
-(declare (salience 3))
+(defrule vetar_jugada_analisis_en_medio_ante
+(declare (salience 1))
 (Analizando)
-(Eliminar)
 (Contador ?num)
-(Caeria ?f ?num)
-?X <- (Tres_en_linea Analisis ?d ?f1 ?c1 ?f3 ?c3 J)
-(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
-(test (or (or (and (= ?f1 ?f) (= ?c1 ?num)) (and (= ?f2 ?f) (= ?c2 ?num))) (and (= ?f3 ?f) (= ?c3 ?num))))
+(Caeria ?f5 ?num)
+(Decre ?f5 ?f1)
+(Conectado Analisis_M ?d ?f2 ?c2 ?f3 ?c3 J)
+(Anterior ?f2 ?c2 ?d ?f1 ?num)
+(Tablero Analisis_M ?f1 ?num _)
+(Anterior ?f1 ?num ?d ?f0 ?c0)
+(Tablero Analisis_M ?f0 ?c0 J)
+?X <- (Puntuacion ?aux1 ?num)
+?Y <- (PuntosPositivos ?aux2 ?num)
+=>
+(retract ?X ?Y)
+)
+
+
+;; Estas reglas eliminan los hechos IncrementarPuntuacion ó IncrementarPuntosPositivos 
+;; que se pueden crear después de haber vetado esa columna
+
+(defrule eliminar_incre_puntuacion_de_columna_vetada
+(declare (salience 1))
+(Contador ?num)
+?X <- (IncrePuntuacion)
+(not (Puntuacion ?aux ?num))
 =>
 (retract ?X)
 )
 
-;; Esta regla indica el final del proceso de eliminación. Para terminar elimina el hecho
-;; "Eliminar", por lo que ya no se lanzarán reglas del proceso de eliminación. Tiene una 
-;; prioridad de 2 para lanzarse antes que la regla "saltar_iteracion", ya que el proceso
-;; de eliminación necesita saber de que columna son los elementos a borrar. Por lo que si 
-;; se saltase una iteración se podrían borrar elementos sin querer. 
-
-(defrule eliminar_elementos
-(declare (salience 2))
-(Analizando)
-?X <- (Eliminar)
+(defrule eliminar_incre_puntos_posi_de_columna_vetada
+(declare (salience 1))
 (Contador ?num)
+?X <- (IncrePuntosPositivos)
+(not (PuntosPositivos ?aux ?num))
 =>
 (retract ?X)
 )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;  ITERAR EN EL ANALISIS
@@ -1097,7 +1070,7 @@
 ;;;;;;; (PuntosNegativos 0 ?i)             representa los puntos positivos de la iteración actual. Se inicializan a cero.
 
 (defrule aumentar_contador_sin_saltar_iter
-(declare (salience -2))
+(declare (salience -1))
 (Analizando)
 ?X <- (Contador ?num)
 (Incre ?num ?i)
@@ -1105,19 +1078,24 @@
 (Caeria ?f1 ?num)
 (Caeria ?f2 ?i)
 (test (<> ?f2 0))
-?Y <- (Tablero Analisis ?f1 ?num J)
-?Z <- (Tablero Analisis ?f2 ?i _)
+?Y <- (Tablero Analisis_J ?f1 ?num J)
+?Z <- (Tablero Analisis_J ?f2 ?i _)
+?T <- (Tablero Analisis_M ?f1 ?num M)
+?R <- (Tablero Analisis_M ?f2 ?i _)
 =>
-(retract ?X ?Y ?Z)
-(assert (Tablero Analisis ?f1 ?num _))
-(assert (Tablero Analisis ?f2 ?i J))
+(retract ?X ?Y ?Z ?T ?R)
+(assert (Tablero Analisis_J ?f1 ?num _))
+(assert (Tablero Analisis_J ?f2 ?i J))
+(assert (Tablero Analisis_M ?f1 ?num _))
+(assert (Tablero Analisis_M ?f2 ?i M))
 (assert (Contador ?i))
 (assert (PuntosNegativos 0 ?i))
 (assert (PuntosPositivos 0 ?i))
+(assert (Puntuacion 0 ?i))
 )
 
 (defrule aumentar_contador_con_saltar_iter
-(declare (salience -2))
+(declare (salience -1))
 (Analizando)
 ?X <- (Contador ?num)
 (Incre ?num ?i)
@@ -1125,10 +1103,12 @@
 (Caeria ?f1 ?num)
 (Caeria ?f2 ?i)
 (test (= ?f2 0))
-?Y <- (Tablero Analisis ?f1 ?num J)
+?Y <- (Tablero Analisis_J ?f1 ?num J)
+?Z <- (Tablero Analisis_M ?f1 ?num M)
 =>
-(retract ?X ?Y)
-(assert (Tablero Analisis ?f1 ?num _))
+(retract ?X ?Y ?Z)
+(assert (Tablero Analisis_J ?f1 ?num _))
+(assert (Tablero Analisis_M ?f1 ?num _))
 (assert (Contador ?i))
 )
 
@@ -1148,21 +1128,21 @@
 ;;;;;;;                                    , valor de columna ?num y que está en blanco. Esta es la posición
 ;;;;;;;                                    que en la anterior iteración tenía la ficha del Jugador.
 ;;;;;;; (Contador ?i)                      representa el nuevo contador del análisis. Se está iterando la columna ?i
-;;;;;;; (Eliminar)                         representa que se está realizando el proceso de eliminación
 
 (defrule ultimo_contador
-(declare (salience -2))
+(declare (salience -1))
 (Analizando)
 ?X <- (Contador ?num)
 (Incre ?num ?i)
 (test (= ?i 8))
 (Caeria ?f ?num)
-?Y <- (Tablero Analisis ?f ?num ?j)
+?Y <- (Tablero Analisis_J ?f ?num J)
+?Z <- (Tablero Analisis_M ?f ?num M)
 =>
-(retract ?X ?Y)
-(assert (Tablero Analisis ?f ?num _))
+(retract ?X ?Y ?Z)
+(assert (Tablero Analisis_J ?f ?num _))
+(assert (Tablero Analisis_M ?f ?num _))
 (assert (Contador ?i))
-(assert (Eliminar))
 )
 
 ;; Esta regla cambia de iteración para saltarse una iteración en la que no hace falta simular
@@ -1200,14 +1180,16 @@
 (Incre ?num ?i)
 (Caeria ?f2 ?i)
 (test (<> ?f2 0))
-?Y <- (Tablero Analisis ?f2 ?i _)
-
+?Y <- (Tablero Analisis_J ?f2 ?i _)
+?Z <- (Tablero Analisis_M ?f2 ?i _)
 =>
-(retract ?X ?Y)
-(assert (Tablero Analisis ?f2 ?i J))
+(retract ?X ?Y ?Z)
+(assert (Tablero Analisis_J ?f2 ?i J))
+(assert (Tablero Analisis_M ?f2 ?i M))
 (assert (Contador ?i))
 (assert (PuntosNegativos 0 ?i))
 (assert (PuntosPositivos 0 ?i))
+(assert (Puntuacion 0 ?i))
 )
 
 
@@ -1216,7 +1198,7 @@
 
 
 
-(defrule obtener_jugada_analisis
+(defrule obtener_jugada_con_mas_puntos_negativos
 (Analizando)
 (Contador ?num)
 (test (= ?num 8))
@@ -1228,13 +1210,24 @@
 (retract ?X)
 )
 
-
-(defrule obtener_perimetro_analisis
+(defrule obtener_jugada_con_mas_puntos_positivos
 (Analizando)
 (Contador ?num)
 (test (= ?num 8))
 ?X <- (PuntosPositivos ?aux1 ?num1)
 (PuntosPositivos ?aux2 ?num2)
+(test (neq ?num1 ?num2))
+(test (<= ?aux1 ?aux2))
+=>
+(retract ?X)
+)
+
+(defrule obtener_jugada_con_mayor_puntuacion
+(Analizando)
+(Contador ?num)
+(test (= ?num 8))
+?X <- (Puntuacion ?aux1 ?num1)
+(Puntuacion ?aux2 ?num2)
 (test (neq ?num1 ?num2))
 (test (<= ?aux1 ?aux2))
 =>
@@ -1249,7 +1242,7 @@
 (defrule ganar_partida
 (declare (salience -2))
 ?Y <- (Turno M)
-(PosibleVictoria M ?c)
+(PosibleVictoria Juego ?d ?f1 ?c1 ?f4 ?c4 M ?c)
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
@@ -1259,16 +1252,26 @@
 (defrule salvar_partida
 (declare (salience -3))
 ?Y <- (Turno M)
-?Z <- (PosibleVictoria J ?c)
+(PosibleVictoria Juego ?d ?f1 ?c1 ?f4 ?c4 J ?c)
 ?X <- (Analizando)
 =>
-(retract ?X ?Y ?Z)
+(retract ?X ?Y)
 (assert (Juega M ?c))
 )
 
+(defrule ganar_partida_analisis
+(declare (salience -4))
+?Y <- (Turno M)
+(PuntosPositivos ?num ?c)
+(test (>= ?num 2))
+?X <- (Analizando)
+=>
+(retract ?X ?Y)
+(assert (Juega M ?c))
+)
 
 (defrule salvar_partida_analisis
-(declare (salience -4))
+(declare (salience -5))
 ?Y <- (Turno M)
 (PuntosNegativos ?num ?c)
 (test (>= ?num 2))
@@ -1280,9 +1283,9 @@
 
 
 (defrule mejor_posicion_analisis
-(declare (salience -5))
+(declare (salience -6))
 ?Y <- (Turno M)
-(PuntosPositivos ?num ?c)
+(Puntuacion ?num ?c)
 (test (neq ?num 0))
 ?X <- (Analizando)
 =>
@@ -1291,7 +1294,7 @@
 )
 
 (defrule colocar_en_el_centro_cuando_no_hay_fichas_M
-(declare (salience -6))
+(declare (salience -7))
 ?Y <- (Turno M)
 ?X <- (Analizando)
 (not (Tablero Juego ?f ?c M))
@@ -1304,16 +1307,18 @@
 ;; Si PuntosPositivos y ya hay fichas en el tablero se ejecuta la elección al azar
 
 (defrule eleccion_al_azar
-(declare (salience -7))
+(declare (salience -8))
 ?Y <- (Turno M)
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
+(assert (AlAzar))
 (assert (Juega M (random 1 7)))
 )
 
 (defrule comprobar_posicion_invalida
 (declare (salience 9999))
+(AlAzar)
 ?X <- (Juega M ?num)
 (Caeria ?f ?num)
 (test (eq ?f 0))
@@ -1328,6 +1333,24 @@
 =>
 (retract ?X)
 (assert (Juega M (random 1 7)))
+)
+
+;; Esta regla tiene 1 de priorida menos que las comprobaciones de si la posición
+;; al azar es buena, con esta regla se elimina el hecho que indica que la elección
+;; se ha hecho al azar, y que posibilita que se pueda comprobar si la posición al azar es
+;; buena, e impide que si la posición no se ha elegido al azar se lanze la regla de comprobación
+;; después de haber aumentado la posición de caida, estas situaciones pueden ocurrir cuando 
+;; la posición que no ha sido elegida al azar es la última posición de un columna, por lo que
+;; al aumentar la posición de caida y ponerse a 0, podría hacer que salte la regla de comprobación
+;; y cambie la columna en la que se introduce la ficha, pero para eso está el hecho "AlAzar",
+;; para indicar a la comprobación cuando debe lanzarse, que es después de haber elegido una posición
+;; al azar.
+
+(defrule eliminar_hecho_al_azar
+(declare (salience 9998))
+?X <- (AlAzar)
+=>
+(retract ?X)
 )
 
 (defrule mensaje_eleccion
