@@ -1293,21 +1293,10 @@
 (assert (Juega M ?c))
 )
 
-(defrule colocar_en_el_centro_cuando_no_hay_fichas_M
-(declare (salience -7))
-?Y <- (Turno M)
-?X <- (Analizando)
-(not (Tablero Juego ?f ?c M))
-(Tablero Juego 6 4 _)
-=>
-(retract ?X ?Y)
-(assert (Juega M 4))
-)
-
 ;; Si PuntosPositivos y ya hay fichas en el tablero se ejecuta la elección al azar
 
 (defrule eleccion_al_azar
-(declare (salience -8))
+(declare (salience -7))
 ?Y <- (Turno M)
 ?X <- (Analizando)
 =>
@@ -1329,6 +1318,7 @@
 
 (defrule volver_a_elegir_al_azar
 (declare (salience 9999))
+(AlAzar)
 ?X <- (VolverAElegir)
 =>
 (retract ?X)
