@@ -278,7 +278,7 @@
 
 (defrule empate
 (declare (salience 9999))
-(Turno ?X)
+?X <- (Turno ?j)
 (Tablero Juego 1 1 M|J)
 (Tablero Juego 1 2 M|J)
 (Tablero Juego 1 3 M|J)
@@ -293,43 +293,45 @@
 
 ;;;;;;;;;;;;;;;;;;;;;; CONOCIMIENTO EXPERTO ;;;;;;;;;;
 
+;; Antes de nada he tenido que modificar la regla empate, ya que tenía un prioridad muy baja,
+;; y cuando se llegaba a un empate saltaban antes reglas como donde debe colocar la ficha el jugador, 
+;; y esto hacía que se quedase en bucle y nunca se ejecutase la regla empate, por ello le he puesto
+;; la máxima prioridad y elimino el hecho Turno para dejar de lanzar reglas después de lanzar la regla
+;; empate.
 
-;; En este sistema experto he creado unas cuántas reglas que realizan deduciones básicas
-;; sobre el estado del juego en todo momento. En estas deduciones básicas se detectan los casos
-;; en que nos falta una ficha para ganar ó una ficha para perder, por lo que actuán sobre el 
-;; estado de juego más inmediato.
+;; La extensión del sistema experto que he creado, se divide en tres módulos principales:
 ;;
-;; Además durante el turno de la máquina se realiza una proceso de análisis, que deduce situaciones
-;; que no son tan inmediatas. En el caso de mi análisis, se comprueba el estado de juego tras jugar
-;; una ficha de la máquina. Con este análisis es posible prevenir a la máquina de situaciones en las
-;; que el jugador contrario tiene dos posibles 4 en raya, por lo que es imposible salvar la partida;
-;; de situaciones en las que colocando una ficha se posibilita la victoria del jugador contrario, al
-;; darle acceso a posiciones nuevas donde colocar la ficha, en concreto la posición de encima de la ficha
-;; colocada. No todos los escenarios de encontrarse con dos posibles victorias del jugador contrario
-;; se pueden prevenir, ya que sólo se analiza hasta cierto nivel de juego, sin profundizar demasiado.
-;; Además de prevenir, el análisis le sirve a la máquina para saber en que posición es más recomendable
-;; colocar la ficha en base al número de posibles conexiones con la nueva ficha.
+;; 1) Deduciones básicas. En esta parte se deducen hechos que nos serán útiles en las siguientes 
+;; dos partes, como puede ser deducir cuando dos fichas están conectadas, cuál es la ficha siguiente
+;; a una dada siguiendo una dirección, etc.
+;; 
+;; 2) Análisis. En esta parte se deducen situaciones que pueden ocurrir al colocar una ficha de 
+;; la Máquina o del Jugador en cierta posición. Algunas de estas situaciones pueden ser la creación
+;; de dos hechos PosibleVictoria del jugador al colocar una ficha del Jugador en cierta posición,
+;; esta situación se debe evitar ya que supondría una perdida asegurada, por ello la Máquina debe
+;; colocar una ficha en esa posición.
+;;
+;; 3) Toma de decisiones. En esta parte se elige la columna en la que se introducirá la ficha, 
+;; esta elección se basa en todos los hechos deducidos y de las situaciones deducidas del análisis.
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;  DEDUCIONES  ;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;  DEDUCIONES BÁSICAS  ;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR LA POSICIÓN SIGUIENTE
 
 ;; En todas las reglas se pone como antecedente una posición (f,c) y su posible
 ;; posición siguiente (f1,c1). Para comprobar que si existe esta relación, se realizan
 ;; unos calculos y unas comprobaciones según la dirección que se haya elegido. Los
-;; cálculos consisten en sumar o restar una unidad a f, ó sumar una unidad a c. Yo 
+;; cálculos consisten en sumar ó restar una unidad a f, ó sumar una unidad a c. Yo 
 ;; considero que la posición siguiente siempre será la que siga la dirección hacia la
 ;; derecha del tablero, y en el caso de la dirección vertical la que se encuentre arriba de (f,c).
-;; Con el test explícitamente se comprueba si la posición siguiente forma parte del tablero, porque
-;; sino el antecedente del hecho de tipo Tablero de la posición siguiente sería falso.
 
 ;;;;;;;;;;;;;;;; Hechos para representar la posición siguiente
 
-;;;;;;; (Siguiente ?f ?c ?direccion ?f1 ?c1)   representa que la posicion f1,c1 es la siguiente posición a f,c 
-;;;;;;;                                        siguiendo la direccion indicada en el hecho
+;;;;;;; (Siguiente ?f ?c ?direccion ?f1 ?c1)   representa que la posicion (f1,c1) es la siguiente posición a (f,c) 
+;;;;;;;                                        siguiendo la dirección ?direccion
 
 (defrule siguiente_posicion_horizontal
 (Tablero Juego ?f ?c _)
@@ -371,16 +373,14 @@
 ;; En todas las reglas se pone como antecedente una posición (f,c) y su posible
 ;; posición anterior (f1,c1). Para comprobar que sí existe esta relación, se realizan
 ;; unos calculos y unas comprobaciones según la dirección que se haya elegido. Los
-;; cálculos consisten en sumar o restar una unidad a f, ó restar una unidad a c. Yo 
+;; cálculos consisten en sumar ó restar una unidad a f, ó restar una unidad a c. Yo 
 ;; considero que la posición anterior siempre será la que siga la dirección hacia la
 ;; izquierda del tablero, y en el caso de la dirección vertical la que se encuentre abajo de (f,c).
-;; Con el test explícitamente se comprueba si la posición anterior forma parte del tablero, porque
-;; sino el antecedente del hecho de tipo Tablero de la posición anterior sería falso.
 
 ;;;;;;;;;;;;;;;; Hechos para representar la posición anterior
 
-;;;;;;; (Anterior ?f ?c ?direccion ?f1 ?c1)   representa que la posicion f1,c1 es la siguiente posición a f,c 
-;;;;;;;                                       siguiendo la direccion indicada en el hecho
+;;;;;;; (Anterior ?f ?c ?direccion ?f1 ?c1)   representa que la posicion (f1,c1) es la anterior posición a (f,c) 
+;;;;;;;                                       siguiendo la dirección ?direccion
 
 (defrule anterior_posicion_horizontal
 (Tablero Juego ?f ?c _)
@@ -429,12 +429,12 @@
 )
 
 ;; Esta regla se lanzará siempre antes de que alguno de los jugadores coloque la ficha
-;; en la posición que indicó, debido a la prioridad igual a 1, para que antes de empezar 
+;; en la posición que indicó, debido a la prioridad igual a 1; para que antes de empezar 
 ;; el turno siguiente ya esté actualizada para las nuevas deduciones. Para lanzar la 
 ;; actualización se añade un hecho que lanza la regla correspondiente, se hace de esta 
 ;; manera para evitar bucles infinitos.
 
-;;;;;;;;;;;;;;;; Hechos para representar la posición en que caería la ficha en cierta columna
+;;;;;;;;;;;;;;;; Hechos para representar la actualización de la posición de caida
 
 ;;;;;;; (posicion_caida ?c)    representa que se debe realizar la actualización, y que la 
 ;;;;;;;                        ficha va a ser introducida en la columna ?c
@@ -468,11 +468,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR CONEXIONES DE DOS FICHAS DEL MISMO JUGADOR
 
-;; Estas reglas se lanzan cuando en cierta posición del tablero hay una ficha de un
-;; jugador, y en la posición siguiente ó anterior a esa posición hay una ficha del
-;; mismo jugador. Estas dos fichas forman una conexión de dos en linea. Las conexiones
-;; siempre empiezan por la posición más a la izquierda, y terminan en la posición más
-;; a la derecha. En el caso de la dirección vertical, empiezan abajo y terminan arriba.
+;; Estas reglas se lanzan cuando en cierta posición del tablero ?t hay una ficha de un
+;; jugador ?j, y en la posición siguiente ó anterior a esa posición hay una ficha del
+;; mismo jugador. Estas dos fichas forman una conexión de dos en linea. Para definir la 
+;; conexión de dos fichas se indica la posición de su ficha más a la izquierda y después 
+;; la posición de su ficha más a la derecha. En el caso de la dirección vertical, se indica 
+;; la posición de la ficha que está abajo y después la posición de la ficha que está arriba.
 
 ;;;;;;;;;;;;;;;; Hechos para representar la conexión de dos fichas del mismo jugador
 
@@ -501,11 +502,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR CONEXIONES DE TRES FICHAS DEL MISMO JUGADOR
 
-;; Estas reglas se lanzan cuando en cierta posición del tablero hay conectadas dos fichas de un
-;; jugador, y en la posición siguiente ó anterior a esa posición hay una ficha del
-;; mismo jugador. Estas tres fichas forman una conexión de tres en linea. Las conexiones
-;; siempre empiezan por la posición más a la izquierda, y terminan en la posición más
-;; a la derecha. En el caso de la dirección vertical, empiezan abajo y terminan arriba.
+;; Estas reglas se lanzan cuando en cierta posición del tablero ?t hay conectadas dos 
+;; fichas de un jugador ?j, y en la posición siguiente ó anterior a esa posición hay 
+;; una ficha del mismo jugador. Estas tres fichas forman una conexión de tres en linea. 
+;; Para definir la conexión de tres fichas se indica la posición de su ficha más a la 
+;; izquierda y después la posición de su ficha más a la derecha. En el caso de la dirección 
+;; vertical, se indica la posición de la ficha que está más abajo y después la posición 
+;; de la ficha que está más arriba.
 
 ;;;;;;;;;;;;;;;; Hechos para representar la conexión de tres fichas del mismo jugador
 
@@ -533,7 +536,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR SITUACION EN QUE ESTAMOS A UNA FICHA DE GANAR
 
 ;; Estas reglas se lanzan cuando existe una de estas cuatro situaciones (las reglas que tienen en cuenta cada
-;; situación están en el mismo orden en que se descirben las distintas situaciones):
+;; situación están en el mismo orden en que se describen las distintas situaciones):
 ;;
 ;; - Existe una conexión de tres fichas del mismo jugador y en la posición siguiente
 ;;   hay una posición en blanco y que además es la posición de caída de la ficha
@@ -552,8 +555,10 @@
 
 ;;;;;;;;;;;;;;;; Hecho para representar la situación en que un jugador se puede convertir en ganador
 
-;;;;;;; (PosibleVictoria ?j ?c)    representa la posibilidad de ganar del jugador ?j, si introduce
-;;;;;;;                            una ficha en la columna ?c
+;;;;;;; (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 ?j ?pos)    representa la posibilidad de ganar del jugador ?j, si introduce
+;;;;;;;                                                    una ficha en la columna ?pos en el tablero ?t. Además se indica
+;;;;;;;                                                    información del posible cuatro en linea, como su dirección ?d,
+;;;;;;;                                                    la posición de inicio (?f1, ?c1) y la posición final (?f4, ?c4)
 
 (defrule comprobar_posible_victoria_delante
 (Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
@@ -598,16 +603,14 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR UN HECHO QUE INDICA QUE UN JUGADOR ESTÁ A UNA FICHA DE GANAR
 
-;; Esta regla se lanza cuando existe un hecho "PosibleVictoria ?jugador ?columna", y en la posición
-;; que faltaba para completar el 4 en raya, se ha colocado una ficha del jugador contrario.
-;; Esto es posible que pase ya que este hecho se está deduciendo todo el rato, sin importar
-;; de que jugador sea el turno en ese momento. Al lanzarse la regla, como consecuencia se
-;; borra el hecho que indica la posibilidad de ganar. Esta regla tiene la máxima prioridad para
-;; evitar errores en la toma de decisiones a la hora de colocar la ficha por parte de la máquina.
+;; Estas reglas se lanzan cuando existe un hecho PosibleVictoria que ha dejado de ser verdad,
+;; esto puede ser debido a dos situaciones:
 
-;; Se comprueba si la columna donde hay que colocar la ficha ?pos su posición de caida sigue 
-;; siendo la misma de cuando se creo el hecho posible victoria, este es el caso en que se ha colocado
-;; una ficha del jugador contrario y por eso ha dejado de ser posible victoria
+;; 1) En la posición que faltaba para completar el 4 en raya, se ha colocado una ficha del jugador 
+;; contrario. Esto es posible que pase ya que este hecho se está deduciendo todo el rato, sin importar
+;; de que jugador sea el turno en ese momento. Para comprobar que ha dejado de ser verda se comprueba
+;; si alguna de las posiciones del posible cuatro en línea está ocupada por una ficha del jugador
+;; contrario
 
 (defrule retractar_posible_victoria_M
 (declare (salience 9999))
@@ -639,8 +642,13 @@
 (retract ?X)
 )
 
-;; Aqui se trata de eliminar las posibles victorias que han dejado de serlo al cambiar
-;; de iteración en el análisis, al mover la ficha que se introduce en el análisis.
+;; 2) En este caso se trata de hechos PosibleVictoria que han sido creado como consecuencia
+;; de colocar una ficha en el análisis para comprobar como afectaría a la partida. Al mover
+;; esta ficha de columna este hecho se convertirá en falso, pero esta vez no porque el jugador
+;; contrario haya colocado una ficha para pararlo, sino porque hay dos posiciones en blanco
+;; en la posible conexión de cuatro en línea. Por ello se comprueba si alguna posición que no sea
+;; la posición donde debe caer la ficha para completar el cuatro en línea, está en blanco; si 
+;; se encuentra alguna se debe eliminar el hecho PosibleVictoria.
 
 (defrule retractar_posible_victoria_temporal
 (declare (salience 9999))
@@ -656,6 +664,18 @@
 (retract ?X)
 )
 
+;; Al lanzarse alguna de las reglas, como consecuencia se borra el hecho PosibleVictoria. Estas reglas 
+;; tiene la máxima prioridad para evitar errores en la toma de decisiones a la hora de colocar la 
+;; ficha por parte de la máquina.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR UN HECHO QUE INDICA LA CONEXIÓN DE TRES FICHAS DEL MISMO JUGADOR
+
+;; Esta regla se lanza cuando existe un hecho Tres_en_linea que ha dejado de ser verdad, esta situación 
+;; sólo puede suceder si el Tres_en_linea ha sido deducido de los tableros de análisis, ya que al mover 
+;; la ficha de una columan a otra queda una posición en blanco en el Tres_en_linea; por lo que hay que 
+;; detectar si algún Tres_en_linea tiene posiciones en blanco.
+
 (defrule retractar_tres_en_linea
 (declare (salience 9999))
 ?X <- (Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
@@ -667,6 +687,13 @@
 =>
 (retract ?X)
 )
+
+;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR UN HECHO QUE INDICA LA CONEXIÓN DE DOS FICHAS DEL MISMO JUGADOR
+
+;; Esta regla se lanza cuando existe un hecho Conectado que ha dejado de ser verdad, esta situación 
+;; sólo puede suceder si el Conectado ha sido deducido de los tableros de análisis, ya que al mover 
+;; la ficha de una columan a otra queda una posición en blanco en el Conectado; por lo que hay que 
+;; detectar si algún Conectado tiene posiciones en blanco.
 
 (defrule retractar_conectado
 (declare (salience 9999))
@@ -683,19 +710,33 @@
 ;;;;;;  ANALISIS DEL TABLERO  ;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Para el análisis se han creado dos tableros, uno para la máquina y otro para el Jugador.
+;; El análisis consiste en comprobar que sucede si colocamos la ficha de un jugador en cierta
+;; posición. En cada análisis se realizan 8 iteraciones, una por cada columna más la última 
+;; iteración que es para extraer la información más relevente del análisis para la posterior 
+;; toma de decisiones. En cada iteración se coloca un ficha de la Máquina en el tablero de 
+;; análisis de la Máquina y lo mismo se hace con el Jugador pero en su tablero de análisis.
+;; De cada análisis se deduce lo siguiente:
+;;
+;; 1) La columna en la que colocando una ficha del Jugador se crea un mayor número de 
+;;    PosibleVictoria para el Jugador
+;; 2) La columna en la que colocando una ficha de la Máquina se crea un mayor número de
+;;    PosibleVictoria para la Máquina
+;; 3) La columna en la que colocando una ficha de la Máquina se tiene un mayor número
+;;    de posibilidades de construir un cuatro en linea que pase por la columna en la que
+;;    se introdujo la ficha
 
-;;;;;;;;;;;;;;;;;;;;;;;  CREAR LOS HECHOS QUE COMPONEN EL TABLERO DE ANALISIS
 
-;; En esta regla se van creando los hechos Tablero para el analisis, copiando el valor de la
-;; casilla equivalente del tablero de Juego. Sólo se crea esta posición en el tablero de
-;; análisis si todavía no existe una posición con ese valor de fila y columna en el tablero de
-;; análisis.
+;;;;;;;;;;;;;;;;;;;;;;;  CREAR LOS HECHOS QUE COMPONEN EL TABLERO DE ANALISIS DEL JUGADOR
 
-;;;;;;;;;;;;;;;; Hechos para representar la posición en el tablero de análisis
+;; En esta regla se van creando los hechos Tablero para el tablero Analisis_J, copiando el valor 
+;; de la casilla equivalente del tablero de Juego. Sólo se crea esta posición en el tablero Analisis_J
+;; si todavía no existe una posición con ese valor de fila y columna en el tablero Analisis_J.
 
-;;;;;;; (Tablero Analisis ?f ?c ?j)   representa que en la posicion con fila f y columna c, hay una
-;;;;;;;                               ficha del tipo ?j, que puede ser de la máquina, del jugador, ó
-;;;;;;;                               estar en blanco. 
+;;;;;;;;;;;;;;;; Hechos para representar la posición en el tablero de análisis del Jugador
+
+;;;;;;; (Tablero Analisis_J ?f ?c ?j)   representa que en la posicion con fila ?f y columna ?c del tablero 
+;;;;;;;                                 Analisis_J hay una ficha del tipo ?j. 
 
 (defrule crear_tablero_analisis_J
 (Tablero Juego ?f ?c ?j1)
@@ -704,6 +745,17 @@
 (assert (Tablero Analisis_J ?f ?c ?j1))
 )
 
+;;;;;;;;;;;;;;;;;;;;;;;  CREAR LOS HECHOS QUE COMPONEN EL TABLERO DE ANALISIS DE LA MÁQUINA
+
+;; En esta regla se van creando los hechos Tablero para el tablero Analisis_M, copiando el valor 
+;; de la casilla equivalente del tablero de Juego. Sólo se crea esta posición en el tablero Analisis_M
+;; si todavía no existe una posición con ese valor de fila y columna en el tablero Analisis_M.
+
+;;;;;;;;;;;;;;;; Hechos para representar la posición en el tablero de análisis de la Máquina
+
+;;;;;;; (Tablero Analisis_M ?f ?c ?j)   representa que en la posicion con fila ?f y columna ?c del tablero 
+;;;;;;;                                 Analisis_M hay una ficha del tipo ?j. 
+
 (defrule crear_tablero_analisis_M
 (Tablero Juego ?f ?c ?j1)
 (not (Tablero Analisis_M ?f ?c ?j2))
@@ -711,19 +763,17 @@
 (assert (Tablero Analisis_M ?f ?c ?j1))
 )
 
+;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR Y RETRACTAR LOS HECHOS DE LAS POSICIONES DEL TABLERO DE ANALISIS DEL JUGADOR
 
-;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR Y RETRACTAR LOS HECHOS DE LAS POSICIONES DEL TABLERO DE ANALISIS
-
-;; Con esta regla se va actualizando el valor del tablero de análisis, en función de los cambios que
+;; Con esta regla se va actualizando el tablero de análisis del Jugador, en función de los cambios que
 ;; se hagan en el tablero de Juego. Si una posición en el tablero de Juego cambia de valor, lanza el
-;; antecedente, y como consecuencia se borra el valor actual de esa posición en el tablero de análisis, 
-;; y se añade el hecho que indica el nuevo valor.
+;; antecedente, y como consecuencia se borra el valor actual de esa posición en el tablero de análisis
+;; del Jugador, y se añade el hecho que indica el nuevo valor.
 
-;;;;;;;;;;;;;;;; Hechos para representar la posición siguiente
+;;;;;;;;;;;;;;;; Hechos para representar la posición en el tablero de análisis del Jugador
 
-;;;;;;; (Tablero Analisis ?f ?c ?j)   representa que en la posicion con fila f y columna c, hay una
-;;;;;;;                               ficha del tipo ?j, que puede ser de la máquina, del jugador, ó
-;;;;;;;                               estar en blanco. 
+;;;;;;; (Tablero Analisis_J ?f ?c ?j)   representa que en la posicion con fila ?f y columna ?c del tablero 
+;;;;;;;                                 Analisis_J hay una ficha del tipo ?j.
 
 (defrule actualizar_tablero_analisis_J
 (Tablero Juego ?f ?c ?j1)
@@ -734,6 +784,18 @@
 (assert (Tablero Analisis_J ?f ?c ?j1))
 )
 
+;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR Y RETRACTAR LOS HECHOS DE LAS POSICIONES DEL TABLERO DE ANALISIS DE LA MÁQUINA
+
+;; Con esta regla se va actualizando el tablero de análisis de la Máquina, en función de los cambios que
+;; se hagan en el tablero de Juego. Si una posición en el tablero de Juego cambia de valor, lanza el
+;; antecedente, y como consecuencia se borra el valor actual de esa posición en el tablero de análisis
+;; de la Máquina, y se añade el hecho que indica el nuevo valor.
+
+;;;;;;;;;;;;;;;; Hechos para representar la posición en el tablero de análisis de la Máquina
+
+;;;;;;; (Tablero Analisis_M ?f ?c ?j)   representa que en la posicion con fila ?f y columna ?c del tablero 
+;;;;;;;                                 Analisis_M hay una ficha del tipo ?j. 
+
 (defrule actualizar_tablero_analisis_M
 (Tablero Juego ?f ?c ?j1)
 ?X <- (Tablero Analisis_M ?f ?c ?j2)
@@ -743,31 +805,30 @@
 (assert (Tablero Analisis_M ?f ?c ?j1))
 )
 
+;;;;;;;;;;;;;;;;;;;;;;;  INICIAR EL PRIMER PROCESO DE ANALISIS
 
-;;;;;;;;;;;;;;;;;;;;;;;  INICIAR EL PROCESO DE ANALISIS
+;; Con esta regla se inicia el proceso de análisis por primera vez. Para iniciar el proceso
+;; se añade el hecho Analizando, para indicar su ejecución; se añade el hecho Contador, para
+;; indicar la iteración que se está ejecutando, se añaden las fichas correspondientes en la
+;; primera columna de cada tablero de análisis, en el tablero del Jugador una ficha del Jugador
+;; , y en el de la Máquina una ficha de la Máquina; y por último se añaden los hechos que 
+;; guardan los puntos positivos y negativos, y la puntuación de una columna, en este caso la 
+;; columan 1.
 
-;; Con esta regla se inicia el proceso de análisis por primera vez, en el cuál 
-;; se simula los efectos de colocar una ficha de un jugador en cierta posición. En 
-;; cada iteración se coloca una ficha del Jugador en cada una de las columnas,
-;; por lo que hay tantas iteraciones como columnas en las que se pueda colocar
-;; una ficha. Al colocar la ficha del Jugador se puede observar si se generarían
-;; nuevos posibles cuatro en raya para el Jugador si la máquina no coloca la ficha 
-;; en esa columna y el Jugador coloca su ficha en esa columna. Además para saber en que
-;; columna introducir la ficha en el caso de que no exista una jugada peligrosa
-;; del Jugador, se comprueba cuántas conexiones posibles de la Máquina hay en
-;; cada posición donde se puede colocar una ficha. Se empieza por la columna 1,
-;; por lo que se pone una ficha del Jugador en la posición de caida de la columna 1.
+;;;;;;;;;;;;;;;; Hechos para representar el inicio del proceso de análisis
 
-;;;;;;;;;;;;;;;; Hechos para representar el proceso de análisis
-
-;;;;;;; (Analizando)                  representa que se está realizando el análisis
-;;;;;;; (Contador ?num)               representa la columna que se está simulando
-;;;;;;; (Tablero Analisis ?f ?c ?j)   representa una posición del tablero de análisis con valor de fila ?f
-;;;;;;;                               , valor de columna ?c y que contiene la ficha ?j
-;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles cuatro en raya encontrados
-;;;;;;;                                    en la simulación de la columna ?contador
-;;;;;;; (PuntosPositivos ?num ?contador)   representa el número ?num de conexiones posibles de la máquina 
-;;;;;;;                                    en la posición de caída en la columna ?contador
+;;;;;;; (Analizando)                       representa que se está realizando el análisis
+;;;;;;; (Contador ?num)                    representa la columna que se está simulando
+;;;;;;; (Tablero Analisis_J ?f ?c ?j)      representa que en la posicion con fila ?f y columna ?c del tablero 
+;;;;;;;                                    Analisis_J hay una ficha del tipo ?j.
+;;;;;;; (Tablero Analisis_M ?f ?c ?j)      representa que en la posicion con fila ?f y columna ?c del tablero 
+;;;;;;;                                    Analisis_M hay una ficha del tipo ?j. 
+;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles cuatro en raya del Jugador 
+;;;;;;;                                    encontrados en la simulación de la columna ?contador
+;;;;;;; (PuntosPositivos ?num ?contador)   representa el número ?num de posibles cuatro en raya de la Máquina
+;;;;;;;                                    encontrados en la simulación de la columna ?contador
+;;;;;;; (Puntuacion ?num ?contador)        representa el número ?num de posibilidades de construir un cuatro en linea
+;;;;;;;                                    de la Máquina encontrados en la simulación de la columna ?contador
 
 (defrule iniciar_primer_analisis
 (Turno M)
@@ -787,23 +848,36 @@
 (assert (Puntuacion 0 1))
 )
 
-;; Esta regla inicia el proceso de análisis desde el segundo turno de la máquina en adelante.
-;; Esta regla hace lo mismo que la anterior, pero añadiendo la eliminación de ciertas deduciones
-;; realizadas en el análisis del turno anterior. Estas deduciones eliminadas son el contador
-;; , la posición con mayor número de 4 en raya posibles del jugador contrario y la posición con 
-;; mayor número de conexiones de la máquina del análisis anterior. Se empieza por la columna 1,
-;; por lo que se pone una ficha del Jugador en la posición de caida de la columna 1.
+;;;;;;;;;;;;;;;;;;;;;;;  INICIAR EL RESTO DE PROCESOS DE ANALISIS
 
-;;;;;;;;;;;;;;;; Hechos para representar el proceso de análisis
+;; La única diferencia entre el primer análisis y el resto de análisis es la necesidad de borrar cierta
+;; información del análisis de la jugada anterior. La información a borrar es el Contador, los PuntosPositivos
+;; , los PuntosNegativos y la Puntuación.
+;;
+;; Además pueden ocurrir dos situaciones:
+;;
+;; 1) La primera columna del tablero está completa, por lo que no es posible colocar ni la ficha de la Máquina,
+;;    ni la ficha del Jugador. Para esta situación se lanza la regla llamada "iniciar_resto_analisis_saltando".
+;;    En esta situación no se añaden los hechos Tablero de ambas fichas, ni los hechos PuntosPositivos, 
+;;    PuntosNegativos, y Puntuacion; sólo se añade el Contador y el hecho Analizando.
+;;
+;; 2) La primera columna del tablero no está completa, por lo que se añade la misma información que en el 
+;;    primer análisis.
+
+;;;;;;;;;;;;;;;; Hechos para representar el inicio del proceso de análisis
 
 ;;;;;;; (Analizando)                       representa que se está realizando el análisis
 ;;;;;;; (Contador ?num)                    representa la columna que se está simulando
-;;;;;;; (Tablero Analisis ?f ?c ?j)        representa una posición del tablero de análisis con valor de fila ?f
-;;;;;;;                                    , valor de columna ?c y que contiene la ficha ?j
-;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles cuatro en raya encontrados
-;;;;;;;                                    en la simulación de la columna ?contador
-;;;;;;; (PuntosPositivos ?num ?contador)   representa el número ?num de conexiones posibles en la posición
-;;;;;;;                                    de caída en la columna ?contador
+;;;;;;; (Tablero Analisis_J ?f ?c ?j)      representa que en la posicion con fila ?f y columna ?c del tablero 
+;;;;;;;                                    Analisis_J hay una ficha del tipo ?j.
+;;;;;;; (Tablero Analisis_M ?f ?c ?j)      representa que en la posicion con fila ?f y columna ?c del tablero 
+;;;;;;;                                    Analisis_M hay una ficha del tipo ?j. 
+;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles cuatro en raya del Jugador 
+;;;;;;;                                    encontrados en la simulación de la columna ?contador
+;;;;;;; (PuntosPositivos ?num ?contador)   representa el número ?num de posibles cuatro en raya de la Máquina
+;;;;;;;                                    encontrados en la simulación de la columna ?contador
+;;;;;;; (Puntuacion ?num ?contador)        representa el número ?num de posibilidades de construir un cuatro en linea
+;;;;;;;                                    de la Máquina encontrados en la simulación de la columna ?contador
 
 (defrule iniciar_resto_analisis_sin_saltar
 (Turno M)
@@ -842,8 +916,17 @@
 (assert (Contador 1))
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR LA PUNTUACION DE UNA COLUMNA
 
+;; Esta regla consiste en sumar una unidad al hecho que almacena la puntuación de una columna 
+;; en el análisis, si existen cuatro posiciones consecutivas con fichas de la Máquina o en blanco
+;; y que además pasen por la posición donde se ha colocado la ficha de la Máquina en la iteración 
+;; actual.
+
+;;;;;;;;;;;;;;;; Hecho para representar el incremento en una unidad de la puntuación
+
+;;;;;;; (IncrePuntuacion)   representa el incremento en una unidad de la puntuación de la
+;;;;;;;                     columna de la iteración actual
 
 (defrule aumentar_puntuacion
 (Analizando)
@@ -861,6 +944,14 @@
 (assert (IncrePuntuacion))
 )
 
+;; Esta regla consiste en realizar el incremento en una unidad de la puntuación de la
+;; columna de la iteración actual.
+
+;;;;;;;;;;;;;;;; Hecho para representar la puntuación de una columna
+
+;;;;;;; (Puntuacion ?num ?contador)    representa el número ?num de posibilidades de construir un cuatro en linea
+;;;;;;;                                de la Máquina encontrados en la simulación de la columna ?contador
+
 (defrule incre_puntuacion
 (Contador ?num)
 ?X <- (IncrePuntuacion)
@@ -871,19 +962,16 @@
 (assert (Puntuacion ?newaux ?num))
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR LOS PUNTOS POSITIVOS DE UNA COLUMNA
 
+;; Esta regla consiste en sumar una unidad al hecho que almacena los puntos positivos de una columna 
+;; en el análisis, si existe una PosibleVictoria de la Máquina en el tablero de análisis de la Máquina,
+;; después de colocar la ficha de la Máquina para la iteración actual.
 
+;;;;;;;;;;;;;;;; Hecho para representar el incremento en una unidad de los puntos positivos
 
-;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR EL NUMERO DE PUNTOS POSITIVOS DE UNA COLUMNA
-
-;; Esta regla consiste en sumar cierto número al hecho que almacena el número de puntos
-;; positivos de una columna en el análisis.
-
-;;;;;;;;;;;;;;;; Hechos para representar la cantidad de puntos positivos
-
-;;;;;;; (PuntosPositivos ?num ?contador)   representa el número ?num de conexiones posibles en la posición
-;;;;;;;                                    de caída en la columna ?contador
+;;;;;;; (IncrePuntosPositivos)   representa el incremento en una unidad de los puntos positivos de la
+;;;;;;;                          columna de la iteración actual
 
 (defrule aumentar_puntos_positivos
 (Analizando)
@@ -892,6 +980,14 @@
 =>
 (assert (IncrePuntosPositivos))
 )
+
+;; Esta regla consiste en realizar el incremento en una unidad de los puntos positivos de la
+;; columna de la iteración actual.
+
+;;;;;;;;;;;;;;;; Hecho para representar los puntos positivos de una columna
+
+;;;;;;; (PuntosPositivos ?num ?contador)   representa el número ?num de posibles cuatro en raya de la Máquina
+;;;;;;;                                    encontrados en la simulación de la columna ?contador
 
 (defrule incre_puntos_positivos
 (Contador ?num)
@@ -903,16 +999,16 @@
 (assert (PuntosPositivos ?newaux ?num))
 )
 
+;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR LOS PUNTOS NEGATIVOS DE UNA COLUMNA
 
-;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR EL NUMERO DE PUNTOS NEGATIVOS DE UNA COLUMNA
+;; Esta regla consiste en sumar una unidad al hecho que almacena los puntos negativos de una columna 
+;; en el análisis, si existe una PosibleVictoria del Jugador en el tablero de análisis del Jugador,
+;; después de colocar la ficha del Jugador para la iteración actual.
 
-;; Esta regla consiste en sumar cierto número al hecho que almacena el número de 
-;; puntos negativos de la columna simulada
+;;;;;;;;;;;;;;;; Hecho para representar el incremento en una unidad de los puntos negativos
 
-;;;;;;;;;;;;;;;; Hechos para representar la cantidad de puntos negativos
-
-;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles victorias cuando se simula
-;;;;;;;                                    la columna ?contador
+;;;;;;; (IncrePuntosNegativos)   representa el incremento en una unidad de los puntos negativos de la
+;;;;;;;                          columna de la iteración actual
 
 (defrule aumentar_puntos_negativos
 (Analizando)
@@ -921,6 +1017,14 @@
 =>
 (assert (IncrePuntosNegativos))
 )
+
+;; Esta regla consiste en realizar el incremento en una unidad de los puntos negativos de la
+;; columna de la iteración actual.
+
+;;;;;;;;;;;;;;;; Hecho para representar los puntos negativos de una columna
+
+;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles cuatro en raya del Jugador 
+;;;;;;;                                    encontrados en la simulación de la columna ?contador
 
 (defrule incre_puntos_negativos
 (Contador ?num)
@@ -932,16 +1036,16 @@
 (assert (PuntosNegativos ?newaux ?num))
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;  VETAR COLUMNA DEL PROCESO DE ANALISIS
 
-;; Estas reglas impide que al colocar una ficha de la Máquina, se cree una posible
-;; victoria del Jugador al poder colocar una ficha en una nueva posición. Si sucede 
-;; esto se elimina el hecho que indica los puntos positivos de la columna, para que no 
-;; se encuentre entre las columnas a elegir como mejor columna donde colocar la ficha. 
-;; Pero no se elimina el hecho de los puntos negativos, ya que si la columna tiene 2 o 
-;; más puntos negativos, se deberá colocar ahí la ficha para imposibilitar la creación 
-;; de dos posibles victorias del Jugador. Tiene una prioridad de 3 para que se lanze 
-;; antes que la regla que indica el final del proceso de eliminación.
+;; Estas reglas consisten en eliminar una columna del proceso de análisis. Una columna es 
+;; vetada si al colocar la ficha de la Máquina en el tablero de análisis de la Máquina, se
+;; crea una PosibleVictoria del Jugador, y la posición en la que tiene que colocar el Jugador
+;; la ficha para ganar es la posición encima de la ficha de la Máquina colocada en la iteración 
+;; actual. Según la dirección de la PosibleVictoria se lanza una regla u otra. Vetar una columna
+;; consiste en eliminar la Puntuacion y los PuntosPositivos de esa columna, para que sólo pueda
+;; ser elegida si tiene muchos puntos negativos. Tiene una prioridad de 1 para vetar antes de que
+;; algunas deduciones se lanzen.
 
 (defrule vetar_jugada_analisis_sigui
 (declare (salience 1))
@@ -1007,9 +1111,12 @@
 (retract ?X ?Y)
 )
 
+;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR HECHOS INCREMENTAR PUNTUACION E INCREMENTAR PUNTOS POSITIVOS
+
 
 ;; Estas reglas eliminan los hechos IncrementarPuntuacion ó IncrementarPuntosPositivos 
 ;; que se pueden crear después de haber vetado esa columna
+
 
 (defrule eliminar_incre_puntuacion_de_columna_vetada
 (declare (salience 1))
