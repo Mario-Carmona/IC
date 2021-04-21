@@ -304,12 +304,17 @@
 ;; 1) Deduciones básicas. En esta parte se deducen hechos que nos serán útiles en las siguientes 
 ;; dos partes, como puede ser deducir cuando dos fichas están conectadas, cuál es la ficha siguiente
 ;; a una dada siguiendo una dirección, etc.
+;;
+;; En las deduciones de las conexiones se indica la posición de inicio y fin para evitar
+;; diferenciar las distintas conexiones.
 ;; 
 ;; 2) Análisis. En esta parte se deducen situaciones que pueden ocurrir al colocar una ficha de 
-;; la Máquina o del Jugador en cierta posición. Algunas de estas situaciones pueden ser la creación
-;; de dos hechos PosibleVictoria del jugador al colocar una ficha del Jugador en cierta posición,
-;; esta situación se debe evitar ya que supondría una perdida asegurada, por ello la Máquina debe
-;; colocar una ficha en esa posición.
+;; la Máquina o del Jugador en cierta posición. En concreto se deducen las siguientes situaciones:
+;;
+;;   - Si la Máquina coloca una ficha se crean dos posibles cuatro en raya
+;;   - Si la Máquina coloca una ficha se posibilita la victoria del Jugador
+;;   - Si el Jugador coloca una ficha se crean dos posibles cuatro en raya
+;;   - Se obtiene cual es la columna que nos da más posibilidades de juego
 ;;
 ;; 3) Toma de decisiones. En esta parte se elige la columna en la que se introducirá la ficha, 
 ;; esta elección se basa en todos los hechos deducidos y de las situaciones deducidas del análisis.
@@ -500,6 +505,24 @@
 )
 
 
+;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR UN HECHO QUE INDICA LA CONEXIÓN DE DOS FICHAS DEL MISMO JUGADOR
+
+;; Esta regla se lanza cuando existe un hecho Conectado que ha dejado de ser verdad, esta situación 
+;; sólo puede suceder si el Conectado ha sido deducido de los tableros de análisis, ya que al mover 
+;; la ficha de una columan a otra queda una posición en blanco en el Conectado; por lo que hay que 
+;; detectar si algún Conectado tiene posiciones en blanco.
+
+(defrule retractar_conectado
+(declare (salience 9999))
+?X <- (Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j)
+(Tablero ?t ?f1 ?c1 ?j1)
+(Tablero ?t ?f2 ?c2 ?j2)
+(test (or (neq ?j1 ?j) (neq ?j2 ?j)))
+=>
+(retract ?X)
+)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR CONEXIONES DE TRES FICHAS DEL MISMO JUGADOR
 
 ;; Estas reglas se lanzan cuando en cierta posición del tablero ?t hay conectadas dos 
@@ -533,6 +556,26 @@
 )
 
 
+;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR UN HECHO QUE INDICA LA CONEXIÓN DE TRES FICHAS DEL MISMO JUGADOR
+
+;; Esta regla se lanza cuando existe un hecho Tres_en_linea que ha dejado de ser verdad, esta situación 
+;; sólo puede suceder si el Tres_en_linea ha sido deducido de los tableros de análisis, ya que al mover 
+;; la ficha de una columan a otra queda una posición en blanco en el Tres_en_linea; por lo que hay que 
+;; detectar si algún Tres_en_linea tiene posiciones en blanco.
+
+(defrule retractar_tres_en_linea
+(declare (salience 9999))
+?X <- (Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
+(Tablero ?t ?f1 ?c1 ?j1)
+(Tablero ?t ?f2 ?c2 ?j2)
+(Tablero ?t ?f3 ?c3 ?j3)
+(test (or (or (neq ?j1 ?j) (neq ?j2 ?j)) (neq ?j3 ?j)))
+=>
+(retract ?X)
+)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;  DEDUCIR SITUACION EN QUE ESTAMOS A UNA FICHA DE GANAR
 
 ;; Estas reglas se lanzan cuando existe una de estas cuatro situaciones (las reglas que tienen en cuenta cada
@@ -553,12 +596,17 @@
 ;;   ficha en esa columna; y además la anterior posición a la posición en blanco está
 ;;   ocupada por una ficha del mismo jugador que tiene la conexión de dos. Ej: M_MM
 
-;;;;;;;;;;;;;;;; Hecho para representar la situación en que un jugador se puede convertir en ganador
 
-;;;;;;; (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 ?j ?pos)    representa la posibilidad de ganar del jugador ?j, si introduce
-;;;;;;;                                                    una ficha en la columna ?pos en el tablero ?t. Además se indica
-;;;;;;;                                                    información del posible cuatro en linea, como su dirección ?d,
-;;;;;;;                                                    la posición de inicio (?f1, ?c1) y la posición final (?f4, ?c4)
+;; En el caso de que se deduzca del tablero de juego
+
+;;;;;;;;;;;;;;;; Hecho para representar la situación en que un jugador se puede convertir en ganador
+;;;;;;;;;;;;;;;; en el tablero de juego
+
+;;;;;;; (PosibleVictoria ?f1 ?c1 ?f4 ?c4 ?j ?f ?c)   representa la posibilidad de ganar del jugador ?j, si introduce
+;;;;;;;                                              una ficha en la columna ?c en el tablero de juego. Además se indica
+;;;;;;;                                              información del posible cuatro en linea, como la posición de 
+;;;;;;;                                              inicio (?f1, ?c1) y la posición final (?f4, ?c4), y la fila ?f donde 
+;;;;;;;                                              debe colocarse la ficha
 
 (defrule comprobar_posible_victoria_delante
 (Tres_en_linea Juego ?d ?f1 ?c1 ?f3 ?c3 ?j)
@@ -566,7 +614,7 @@
 (Tablero Juego ?f4 ?c4 _)
 (Caeria ?f4 ?c4)
 =>
-(assert (PosibleVictoria ?d ?f1 ?c1 ?f4 ?c4 ?j ?f4 ?c4))
+(assert (PosibleVictoria ?f1 ?c1 ?f4 ?c4 ?j ?f4 ?c4))
 )
 
 (defrule comprobar_posible_victoria_detras
@@ -575,7 +623,7 @@
 (Tablero Juego ?f0 ?c0 _)
 (Caeria ?f0 ?c0)
 =>
-(assert (PosibleVictoria ?d ?f0 ?c0 ?f3 ?c3 ?j ?f0 ?c0))
+(assert (PosibleVictoria ?f0 ?c0 ?f3 ?c3 ?j ?f0 ?c0))
 )
 
 (defrule comprobar_posible_victoria_en_medio_delante
@@ -586,7 +634,7 @@
 (Siguiente ?f3 ?c3 ?d ?f4 ?c4)
 (Tablero Juego ?f4 ?c4 ?j)
 =>
-(assert (PosibleVictoria ?d ?f1 ?c1 ?f4 ?c4 ?j ?f3 ?c3))
+(assert (PosibleVictoria ?f1 ?c1 ?f4 ?c4 ?j ?f3 ?c3))
 )
 
 (defrule comprobar_posible_victoria_en_medio_detras
@@ -597,12 +645,19 @@
 (Anterior ?f1 ?c1 ?d ?f0 ?c0)
 (Tablero Juego ?f0 ?c0 ?j)
 =>
-(assert (PosibleVictoria ?d ?f0 ?c0 ?f3 ?c3 ?j ?f1 ?c1))
+(assert (PosibleVictoria ?f0 ?c0 ?f3 ?c3 ?j ?f1 ?c1))
 )
 
+;; En el caso de que se deduzca de alguno de los tablero de análisis
 
-;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;; Hecho para representar la situación en que un jugador se puede convertir en ganador
+;;;;;;;;;;;;;;;; en el tablero de análisis
 
+;;;;;;; (PosibleVictoriaTemporal ?t ?f1 ?c1 ?f4 ?c4 ?j ?f ?c ?num)   representa la posibilidad de ganar del jugador ?j, si introduce
+;;;;;;;                                                              una ficha en la columna ?c en el tablero de análisis ?t. Además 
+;;;;;;;                                                              se indica información del posible cuatro en linea, como la posición de 
+;;;;;;;                                                              inicio (?f1, ?c1) y la posición final (?f4, ?c4), la iteración ?num
+;;;;;;;                                                              en que se generó, y la fila ?f donde debe colocarse la ficha
 
 (defrule comprobar_posible_victoria_temporal_delante
 (Contador ?num)
@@ -656,18 +711,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR UN HECHO QUE INDICA QUE UN JUGADOR ESTÁ A UNA FICHA DE GANAR
 
-;; Estas reglas se lanzan cuando existe un hecho PosibleVictoria que ha dejado de ser verdad,
-;; esto puede ser debido a dos situaciones:
+;; Estas reglas se lanzan cuando existe un hecho PosibleVictoria ó PosibleVictoriaTemporal que han 
+;; dejado de ser verdad, esto puede ser debido a dos situaciones:
 
 ;; 1) En la posición que faltaba para completar el 4 en raya, se ha colocado una ficha del jugador 
 ;; contrario. Esto es posible que pase ya que este hecho se está deduciendo todo el rato, sin importar
-;; de que jugador sea el turno en ese momento. Para comprobar que ha dejado de ser verda se comprueba
-;; si alguna de las posiciones del posible cuatro en línea está ocupada por una ficha del jugador
-;; contrario
+;; de que jugador sea el turno en ese momento. Para comprobarlo se comprueba el valor de la casilla
+;; que falta para completar el cuatro en raya.
 
 (defrule retractar_posible_victoria_M
 (declare (salience 9999))
-?X <- (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 M ?f ?c)
+?X <- (PosibleVictoria ?f1 ?c1 ?f4 ?c4 M ?f ?c)
 (Tablero ?t ?f ?c J)
 =>
 (retract ?X)
@@ -675,19 +729,19 @@
 
 (defrule retractar_posible_victoria_J
 (declare (salience 9999))
-?X <- (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 J ?f ?c)
+?X <- (PosibleVictoria ?f1 ?c1 ?f4 ?c4 J ?f ?c)
 (Tablero ?t ?f ?c M)
 =>
 (retract ?X)
 )
 
-;; 2) En este caso se trata de hechos PosibleVictoria que han sido creado como consecuencia
+;; 2) En este caso se trata de hechos PosibleVictoriaTemporal que han sido creado como consecuencia
 ;; de colocar una ficha en el análisis para comprobar como afectaría a la partida. Al mover
 ;; esta ficha de columna este hecho se convertirá en falso, pero esta vez no porque el jugador
 ;; contrario haya colocado una ficha para pararlo, sino porque hay dos posiciones en blanco
-;; en la posible conexión de cuatro en línea. Por ello se comprueba si alguna posición que no sea
-;; la posición donde debe caer la ficha para completar el cuatro en línea, está en blanco; si 
-;; se encuentra alguna se debe eliminar el hecho PosibleVictoria.
+;; en la posible conexión de cuatro en línea. Por ello se comprueba si el valor del contador es
+;; distinto al valor de la columna en que se generó el hecho, porque esto quiere decir que hemos
+;; pasado de iteración y a dejado de ser verdad el hecho.
 
 (defrule retractar_posible_victoria_temporal
 (declare (salience 9999))
@@ -698,46 +752,9 @@
 (retract ?X)
 )
 
-;; Al lanzarse alguna de las reglas, como consecuencia se borra el hecho PosibleVictoria. Estas reglas 
-;; tiene la máxima prioridad para evitar errores en la toma de decisiones a la hora de colocar la 
+;; Estas reglas tiene la máxima prioridad para evitar errores en la toma de decisiones a la hora de colocar la 
 ;; ficha por parte de la máquina.
 
-
-;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR UN HECHO QUE INDICA LA CONEXIÓN DE TRES FICHAS DEL MISMO JUGADOR
-
-;; Esta regla se lanza cuando existe un hecho Tres_en_linea que ha dejado de ser verdad, esta situación 
-;; sólo puede suceder si el Tres_en_linea ha sido deducido de los tableros de análisis, ya que al mover 
-;; la ficha de una columan a otra queda una posición en blanco en el Tres_en_linea; por lo que hay que 
-;; detectar si algún Tres_en_linea tiene posiciones en blanco.
-
-(defrule retractar_tres_en_linea
-(declare (salience 9999))
-?X <- (Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
-(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
-(Tablero ?t ?f1 ?c1 ?j1)
-(Tablero ?t ?f2 ?c2 ?j2)
-(Tablero ?t ?f3 ?c3 ?j3)
-(test (or (or (neq ?j1 ?j) (neq ?j2 ?j)) (neq ?j3 ?j)))
-=>
-(retract ?X)
-)
-
-;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR UN HECHO QUE INDICA LA CONEXIÓN DE DOS FICHAS DEL MISMO JUGADOR
-
-;; Esta regla se lanza cuando existe un hecho Conectado que ha dejado de ser verdad, esta situación 
-;; sólo puede suceder si el Conectado ha sido deducido de los tableros de análisis, ya que al mover 
-;; la ficha de una columan a otra queda una posición en blanco en el Conectado; por lo que hay que 
-;; detectar si algún Conectado tiene posiciones en blanco.
-
-(defrule retractar_conectado
-(declare (salience 9999))
-?X <- (Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j)
-(Tablero ?t ?f1 ?c1 ?j1)
-(Tablero ?t ?f2 ?c2 ?j2)
-(test (or (neq ?j1 ?j) (neq ?j2 ?j)))
-=>
-(retract ?X)
-)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1013,6 +1030,17 @@
 (assert (Puntuacion ?newaux ?num))
 )
 
+;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR LA PUNTUACION DE UNA COLUMNA
+
+(defrule retractar_puntuacion
+(declare (salience 9999))
+(Turno J)
+?X <- (Puntuacion ?num ?c)
+=>
+(retract ?X)
+)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR LOS PUNTOS POSITIVOS DE UNA COLUMNA
 
 ;; Esta regla consiste en sumar una unidad al hecho que almacena los puntos positivos de una columna 
@@ -1034,24 +1062,7 @@
 (assert (FuturaPosibleVictoria M ?num))
 )
 
-;; Esta regla consiste en realizar el incremento en una unidad de los puntos positivos de la
-;; columna de la iteración actual.
 
-;;;;;;;;;;;;;;;; Hecho para representar los puntos positivos de una columna
-
-;;;;;;; (PuntosPositivos ?num ?contador)   representa el número ?num de posibles cuatro en raya de la Máquina
-;;;;;;;                                    encontrados en la simulación de la columna ?contador
-
-
-;(defrule incre_puntos_positivos
-;(Contador ?num)
-;?X <- (IncrePuntosPositivos)
-;?Y <- (PuntosPositivos ?aux ?num)
-;=>
-;(retract ?X ?Y)
-;(bind ?newaux (+ ?aux 1))
-;(assert (PuntosPositivos ?newaux ?num))
-;)
 
 ;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR LOS PUNTOS NEGATIVOS DE UNA COLUMNA
 
@@ -1075,23 +1086,26 @@
 (assert (FuturaPosibleVictoria J ?num))
 )
 
-;; Esta regla consiste en realizar el incremento en una unidad de los puntos negativos de la
-;; columna de la iteración actual.
 
-;;;;;;;;;;;;;;;; Hecho para representar los puntos negativos de una columna
 
-;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles cuatro en raya del Jugador 
-;;;;;;;                                    encontrados en la simulación de la columna ?contador
 
-;(defrule incre_puntos_negativos
-;(Contador ?num)
-;?X <- (IncrePuntosNegativos)
-;?Y <- (PuntosNegativos ?aux ?num)
-;=>
-;(retract ?X ?Y)
-;(bind ?newaux (+ ?aux 1))
-;(assert (PuntosNegativos ?newaux ?num))
-;)
+;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR UNA POSIBLE VICTORIA EN EL FUTURO
+
+(defrule retractar_futura_posible_victoria
+(declare (salience 9999))
+(Turno J)
+?X <- (FuturaPosibleVictoria ?j ?c)
+=>
+(retract ?X)
+)
+
+
+
+
+
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;  VETAR COLUMNA DEL PROCESO DE ANALISIS
 
@@ -1365,7 +1379,7 @@
 (defrule ganar_partida
 (declare (salience -2))
 ?Y <- (Turno M)
-(PosibleVictoria Juego ?d ?f1 ?c1 ?f4 ?c4 M ?f ?c)
+(PosibleVictoria ?f1 ?c1 ?f4 ?c4 M ?f ?c)
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
@@ -1375,7 +1389,7 @@
 (defrule salvar_partida
 (declare (salience -3))
 ?Y <- (Turno M)
-(PosibleVictoria Juego ?d ?f1 ?c1 ?f4 ?c4 J ?f ?c)
+(PosibleVictoria ?f1 ?c1 ?f4 ?c4 J ?f ?c)
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
@@ -1424,18 +1438,3 @@
 
 
 
-(defrule retractar_futura_posible_victoria
-(declare (salience 9999))
-(Turno J)
-?X <- (FuturaPosibleVictoria ?j ?c)
-=>
-(retract ?X)
-)
-
-(defrule retractar_puntuacion
-(declare (salience 9999))
-(Turno J)
-?X <- (Puntuacion ?num ?c)
-=>
-(retract ?X)
-)
