@@ -561,43 +561,96 @@
 ;;;;;;;                                                    la posición de inicio (?f1, ?c1) y la posición final (?f4, ?c4)
 
 (defrule comprobar_posible_victoria_delante
-(Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Tres_en_linea Juego ?d ?f1 ?c1 ?f3 ?c3 ?j)
 (Siguiente ?f3 ?c3 ?d ?f4 ?c4)
-(Tablero ?t ?f4 ?c4 _)
+(Tablero Juego ?f4 ?c4 _)
 (Caeria ?f4 ?c4)
 =>
-(assert (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 ?j ?c4))
+(assert (PosibleVictoria ?d ?f1 ?c1 ?f4 ?c4 ?j ?f4 ?c4))
 )
 
 (defrule comprobar_posible_victoria_detras
+(Tres_en_linea Juego ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(Anterior ?f1 ?c1 ?d ?f0 ?c0)
+(Tablero Juego ?f0 ?c0 _)
+(Caeria ?f0 ?c0)
+=>
+(assert (PosibleVictoria ?d ?f0 ?c0 ?f3 ?c3 ?j ?f0 ?c0))
+)
+
+(defrule comprobar_posible_victoria_en_medio_delante
+(Conectado Juego ?d ?f1 ?c1 ?f2 ?c2 ?j)
+(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
+(Tablero Juego ?f3 ?c3 _)
+(Caeria ?f3 ?c3)
+(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
+(Tablero Juego ?f4 ?c4 ?j)
+=>
+(assert (PosibleVictoria ?d ?f1 ?c1 ?f4 ?c4 ?j ?f3 ?c3))
+)
+
+(defrule comprobar_posible_victoria_en_medio_detras
+(Conectado Juego ?d ?f2 ?c2 ?f3 ?c3 ?j)
+(Anterior ?f2 ?c2 ?d ?f1 ?c1)
+(Tablero Juego ?f1 ?c1 _)
+(Caeria ?f1 ?c1)
+(Anterior ?f1 ?c1 ?d ?f0 ?c0)
+(Tablero Juego ?f0 ?c0 ?j)
+=>
+(assert (PosibleVictoria ?d ?f0 ?c0 ?f3 ?c3 ?j ?f1 ?c1))
+)
+
+
+;;;;;;;;;;;;;;;;;
+
+
+(defrule comprobar_posible_victoria_temporal_delante
+(Contador ?num)
 (Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(test (neq ?t Juego))
+(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
+(Tablero ?t ?f4 ?c4 _)
+(Caeria ?f4 ?c4)
+(not (Tablero Analisis_J ?f ?c ?j2))
+=>
+(assert (PosibleVictoriaTemporal ?t ?f1 ?c1 ?f4 ?c4 ?j ?f4 ?c4 ?num))
+)
+
+(defrule comprobar_posible_victoria_temporal_detras
+(Contador ?num)
+(Tres_en_linea ?t ?d ?f1 ?c1 ?f3 ?c3 ?j)
+(test (neq ?t Juego))
 (Anterior ?f1 ?c1 ?d ?f0 ?c0)
 (Tablero ?t ?f0 ?c0 _)
 (Caeria ?f0 ?c0)
 =>
-(assert (PosibleVictoria ?t ?d ?f0 ?c0 ?f3 ?c3 ?j ?c0))
+(assert (PosibleVictoriaTemporal ?t ?f0 ?c0 ?f3 ?c3 ?j ?f0 ?c0 ?num))
 )
 
-(defrule comprobar_posible_victoria_en_medio_delante
+(defrule comprobar_posible_victoria_temporal_en_medio_delante
+(Contador ?num)
 (Conectado ?t ?d ?f1 ?c1 ?f2 ?c2 ?j)
+(test (neq ?t Juego))
 (Siguiente ?f2 ?c2 ?d ?f3 ?c3)
 (Tablero ?t ?f3 ?c3 _)
 (Caeria ?f3 ?c3)
 (Siguiente ?f3 ?c3 ?d ?f4 ?c4)
 (Tablero ?t ?f4 ?c4 ?j)
 =>
-(assert (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 ?j ?c3))
+(assert (PosibleVictoriaTemporal ?t ?f1 ?c1 ?f4 ?c4 ?j ?f3 ?c3 ?num))
 )
 
-(defrule comprobar_posible_victoria_en_medio_detras
+(defrule comprobar_posible_victoria_temporal_en_medio_detras
+(Contador ?num)
 (Conectado ?t ?d ?f2 ?c2 ?f3 ?c3 ?j)
+(test (neq ?t Juego))
 (Anterior ?f2 ?c2 ?d ?f1 ?c1)
 (Tablero ?t ?f1 ?c1 _)
 (Caeria ?f1 ?c1)
 (Anterior ?f1 ?c1 ?d ?f0 ?c0)
 (Tablero ?t ?f0 ?c0 ?j)
 =>
-(assert (PosibleVictoria ?t ?d ?f0 ?c0 ?f3 ?c3 ?j ?c1))
+(assert (PosibleVictoriaTemporal ?t ?f0 ?c0 ?f3 ?c3 ?j ?f1 ?c1 ?num))
 )
 
 
@@ -614,30 +667,16 @@
 
 (defrule retractar_posible_victoria_M
 (declare (salience 9999))
-?X <- (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 M ?pos)
-(Caeria ?f ?pos)
-(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
-(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
-(Tablero ?t ?f1 ?c1 ?j1)
-(Tablero ?t ?f2 ?c2 ?j2)
-(Tablero ?t ?f3 ?c3 ?j3)
-(Tablero ?t ?f4 ?c4 ?j4)
-(test (or (or (eq ?j1 J) (eq ?j2 J)) (or (eq ?j3 J) (eq ?j4 J))))
+?X <- (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 M ?f ?c)
+(Tablero ?t ?f ?c J)
 =>
 (retract ?X)
 )
 
 (defrule retractar_posible_victoria_J
 (declare (salience 9999))
-?X <- (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 J ?pos)
-(Caeria ?f ?pos)
-(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
-(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
-(Tablero ?t ?f1 ?c1 ?j1)
-(Tablero ?t ?f2 ?c2 ?j2)
-(Tablero ?t ?f3 ?c3 ?j3)
-(Tablero ?t ?f4 ?c4 ?j4)
-(test (or (or (eq ?j1 M) (eq ?j2 M)) (or (eq ?j3 M) (eq ?j4 M))))
+?X <- (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 J ?f ?c)
+(Tablero ?t ?f ?c M)
 =>
 (retract ?X)
 )
@@ -652,14 +691,9 @@
 
 (defrule retractar_posible_victoria_temporal
 (declare (salience 9999))
-?X <- (PosibleVictoria ?t ?d ?f1 ?c1 ?f4 ?c4 ?j ?pos)
-(Siguiente ?f1 ?c1 ?d ?f2 ?c2)
-(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
-(Tablero ?t ?f1 ?c1 ?j1)
-(Tablero ?t ?f2 ?c2 ?j2)
-(Tablero ?t ?f3 ?c3 ?j3)
-(Tablero ?t ?f4 ?c4 ?j4)
-(test (or (or (and (neq ?pos ?c1) (eq ?j1 _)) (and (neq ?pos ?c2) (eq ?j2 _))) (or (and (neq ?pos ?c3) (eq ?j3 _)) (and (neq ?pos ?c4) (eq ?j4 _)))))
+(Contador ?num)
+?X <- (PosibleVictoriaTemporal ?t ?f1 ?c1 ?f4 ?c4 ?j ?f ?c ?cont)
+(test (neq ?num ?cont))
 =>
 (retract ?X)
 )
@@ -843,8 +877,6 @@
 (assert (Contador 1))
 (assert (Tablero Analisis_J ?f 1 J))
 (assert (Tablero Analisis_M ?f 1 M))
-(assert (PuntosNegativos 0 1))
-(assert (PuntosPositivos 0 1))
 (assert (Puntuacion 0 1))
 )
 
@@ -883,21 +915,16 @@
 (Turno M)
 (not (Analizando))
 ?X <- (Contador ?num)
-?Y <- (PuntosNegativos ?aux1 ?num1)
-?Z <- (PuntosPositivos ?aux2 ?num2)
-?T <- (Puntuacion ?aux3 ?num3)
 (Caeria ?f 1)
-?R <- (Tablero Analisis_J ?f 1 _)
-?C <- (Tablero Analisis_M ?f 1 _)
+?Y <- (Tablero Analisis_J ?f 1 _)
+?Z <- (Tablero Analisis_M ?f 1 _)
 (test (<> ?f 0))
 =>
-(retract ?X ?Y ?Z ?T ?R ?C)
+(retract ?X ?Y ?Z)
 (assert (Analizando))
 (assert (Contador 1))
 (assert (Tablero Analisis_J ?f 1 J))
 (assert (Tablero Analisis_M ?f 1 M))
-(assert (PuntosNegativos 0 1))
-(assert (PuntosPositivos 0 1))
 (assert (Puntuacion 0 1))
 )
 
@@ -905,13 +932,10 @@
 (Turno M)
 (not (Analizando))
 ?X <- (Contador ?num)
-?Y <- (PuntosNegativos ?aux1 ?num1)
-?Z <- (PuntosPositivos ?aux2 ?num2)
-?T <- (Puntuacion ?aux3 ?num3)
 (Caeria ?f 1)
 (test (= ?f 0))
 =>
-(retract ?X ?Y ?Z ?T)
+(retract ?X)
 (assert (Analizando))
 (assert (Contador 1))
 )
@@ -928,8 +952,8 @@
 ;;;;;;; (IncrePuntuacion)   representa el incremento en una unidad de la puntuación de la
 ;;;;;;;                     columna de la iteración actual
 
-(defrule aumentar_puntuacion
-(Analizando)
+
+(defrule obtener_linea_libre
 (Contador ?num)
 (Caeria ?f ?num)
 (Tablero Analisis_M ?f1 ?c1 M|_)
@@ -939,7 +963,34 @@
 (Tablero Analisis_M ?f2 ?c2 M|_)
 (Tablero Analisis_M ?f3 ?c3 M|_)
 (Tablero Analisis_M ?f4 ?c4 M|_)
-(test (or (or (and (eq ?f ?f1) (eq ?num ?c1)) (and (eq ?f ?f2) (eq ?num ?c2))) (or (and (eq ?f ?f3) (eq ?num ?c3)) (and (eq ?f ?f4) (eq ?num ?c4)))))
+=>
+(assert (LineaLibre ?d ?f1 ?c1 ?f1 ?c1))
+(assert (LineaLibre ?d ?f1 ?c1 ?f2 ?c2))
+(assert (LineaLibre ?d ?f1 ?c1 ?f3 ?c3))
+(assert (LineaLibre ?d ?f1 ?c1 ?f4 ?c4))
+)
+
+(defrule retractar_linea_libre
+(declare (salience 9999))
+(Tablero Analisis_M ?f1 ?c1 J)
+(LineaLibre ?d ?f_ini ?c_ini ?f1 ?c1)
+(Siguiente ?f_ini ?c_ini ?d ?f2 ?c2)
+(Siguiente ?f2 ?c2 ?d ?f3 ?c3)
+(Siguiente ?f3 ?c3 ?d ?f4 ?c4)
+?X <- (LineaLibre ?d ?f_ini ?c_ini ?f_ini ?c_ini)
+?Y <- (LineaLibre ?d ?f_ini ?c_ini ?f2 ?c2)
+?Z <- (LineaLibre ?d ?f_ini ?c_ini ?f3 ?c3)
+?T <- (LineaLibre ?d ?f_ini ?c_ini ?f4 ?c4)
+=>
+(retract ?X ?Y ?Z ?T)
+)
+
+
+(defrule aumentar_puntuacion
+(Analizando)
+(Contador ?num)
+(Caeria ?f ?num)
+(LineaLibre ?d ?f_ini ?c_ini ?f ?num)
 =>
 (assert (IncrePuntuacion))
 )
@@ -975,10 +1026,12 @@
 
 (defrule aumentar_puntos_positivos
 (Analizando)
-(PosibleVictoria Analisis_M ?d ?f1 ?c1 ?f4 ?c4 M ?pos)
 (Contador ?num)
+(PosibleVictoriaTemporal Analisis_M ?f1_a ?c1_a ?f4_a ?c4_a M ?f_a ?c_a ?num)
+(PosibleVictoriaTemporal Analisis_M ?f1_b ?c1_b ?f4_b ?c4_b M ?f_b ?c_b ?num)
+(test (or (neq ?f1_a ?f1_b) (neq ?c1_a ?c1_b)))
 =>
-(assert (IncrePuntosPositivos))
+(assert (FuturaPosibleVictoria M ?num))
 )
 
 ;; Esta regla consiste en realizar el incremento en una unidad de los puntos positivos de la
@@ -989,15 +1042,16 @@
 ;;;;;;; (PuntosPositivos ?num ?contador)   representa el número ?num de posibles cuatro en raya de la Máquina
 ;;;;;;;                                    encontrados en la simulación de la columna ?contador
 
-(defrule incre_puntos_positivos
-(Contador ?num)
-?X <- (IncrePuntosPositivos)
-?Y <- (PuntosPositivos ?aux ?num)
-=>
-(retract ?X ?Y)
-(bind ?newaux (+ ?aux 1))
-(assert (PuntosPositivos ?newaux ?num))
-)
+
+;(defrule incre_puntos_positivos
+;(Contador ?num)
+;?X <- (IncrePuntosPositivos)
+;?Y <- (PuntosPositivos ?aux ?num)
+;=>
+;(retract ?X ?Y)
+;(bind ?newaux (+ ?aux 1))
+;(assert (PuntosPositivos ?newaux ?num))
+;)
 
 ;;;;;;;;;;;;;;;;;;;;;;;  AUMENTAR LOS PUNTOS NEGATIVOS DE UNA COLUMNA
 
@@ -1012,10 +1066,13 @@
 
 (defrule aumentar_puntos_negativos
 (Analizando)
-(PosibleVictoria Analisis_J ?d ?f1 ?c1 ?f4 ?c4 J ?pos)
 (Contador ?num)
+(PosibleVictoriaTemporal Analisis_J ?f1_a ?c1_a ?f4_a ?c4_a J ?f_a ?c_a ?num)
+(PosibleVictoriaTemporal Analisis_J ?f1_b ?c1_b ?f4_b ?c4_b J ?f_b ?c_b ?num)
+(test (or (neq ?f1_a ?f1_b) (neq ?c1_a ?c1_b)))
+
 =>
-(assert (IncrePuntosNegativos))
+(assert (FuturaPosibleVictoria J ?num))
 )
 
 ;; Esta regla consiste en realizar el incremento en una unidad de los puntos negativos de la
@@ -1026,15 +1083,15 @@
 ;;;;;;; (PuntosNegativos ?num ?contador)   representa el número ?num de posibles cuatro en raya del Jugador 
 ;;;;;;;                                    encontrados en la simulación de la columna ?contador
 
-(defrule incre_puntos_negativos
-(Contador ?num)
-?X <- (IncrePuntosNegativos)
-?Y <- (PuntosNegativos ?aux ?num)
-=>
-(retract ?X ?Y)
-(bind ?newaux (+ ?aux 1))
-(assert (PuntosNegativos ?newaux ?num))
-)
+;(defrule incre_puntos_negativos
+;(Contador ?num)
+;?X <- (IncrePuntosNegativos)
+;?Y <- (PuntosNegativos ?aux ?num)
+;=>
+;(retract ?X ?Y)
+;(bind ?newaux (+ ?aux 1))
+;(assert (PuntosNegativos ?newaux ?num))
+;)
 
 ;;;;;;;;;;;;;;;;;;;;;;;  VETAR COLUMNA DEL PROCESO DE ANALISIS
 
@@ -1047,69 +1104,18 @@
 ;; ser elegida si tiene muchos puntos negativos. Tiene una prioridad de 1 para vetar antes de que
 ;; algunas deduciones se lanzen.
 
-(defrule vetar_jugada_analisis_sigui
+(defrule vetar_jugada_analisis
 (declare (salience 1))
 (Analizando)
 (Contador ?num)
 (Caeria ?f5 ?num)
-(Decre ?f5 ?f4)
-(Tres_en_linea Analisis_M ?d ?f1 ?c1 ?f3 ?c3 J)
-(Siguiente ?f3 ?c3 ?d ?f4 ?num)
-(Tablero Analisis_M ?f4 ?num _)
-?X <- (Puntuacion ?aux1 ?num)
-?Y <- (PuntosPositivos ?aux2 ?num)
+(PosibleVictoria ?f1 ?c1 ?f4 ?c4 J ?f5 ?num ?num)
+?X <- (Puntuacion ?aux ?num)
 =>
-(retract ?X ?Y)
+(retract ?X)
+(assert (Vetar ?num))
 )
 
-(defrule vetar_jugada_analisis_ante
-(declare (salience 1))
-(Analizando)
-(Contador ?num)
-(Caeria ?f5 ?num)
-(Decre ?f5 ?f4)
-(Tres_en_linea Analisis_M ?d ?f1 ?c1 ?f3 ?c3 J)
-(Anterior ?f1 ?c1 ?d ?f4 ?num)
-(Tablero Analisis_M ?f4 ?num _)
-?X <- (Puntuacion ?aux1 ?num)
-?Y <- (PuntosPositivos ?aux2 ?num)
-=>
-(retract ?X ?Y)
-)
-
-(defrule vetar_jugada_analisis_en_medio_sigui
-(declare (salience 1))
-(Analizando)
-(Contador ?num)
-(Caeria ?f5 ?num)
-(Decre ?f5 ?f3)
-(Conectado Analisis_M ?d ?f1 ?c1 ?f2 ?c2 J)
-(Siguiente ?f2 ?c2 ?d ?f3 ?num)
-(Tablero Analisis_M ?f3 ?num _)
-(Siguiente ?f3 ?num ?d ?f4 ?c4)
-(Tablero Analisis_M ?f4 ?c4 J)
-?X <- (Puntuacion ?aux1 ?num)
-?Y <- (PuntosPositivos ?aux2 ?num)
-=>
-(retract ?X ?Y)
-)
-
-(defrule vetar_jugada_analisis_en_medio_ante
-(declare (salience 1))
-(Analizando)
-(Contador ?num)
-(Caeria ?f5 ?num)
-(Decre ?f5 ?f1)
-(Conectado Analisis_M ?d ?f2 ?c2 ?f3 ?c3 J)
-(Anterior ?f2 ?c2 ?d ?f1 ?num)
-(Tablero Analisis_M ?f1 ?num _)
-(Anterior ?f1 ?num ?d ?f0 ?c0)
-(Tablero Analisis_M ?f0 ?c0 J)
-?X <- (Puntuacion ?aux1 ?num)
-?Y <- (PuntosPositivos ?aux2 ?num)
-=>
-(retract ?X ?Y)
-)
 
 ;;;;;;;;;;;;;;;;;;;;;;;  RETRACTAR HECHOS INCREMENTAR PUNTUACION E INCREMENTAR PUNTOS POSITIVOS
 
@@ -1119,19 +1125,28 @@
 
 
 (defrule eliminar_incre_puntuacion_de_columna_vetada
-(declare (salience 1))
 (Contador ?num)
+(Vetar ?num)
 ?X <- (IncrePuntuacion)
-(not (Puntuacion ?aux ?num))
 =>
 (retract ?X)
 )
 
-(defrule eliminar_incre_puntos_posi_de_columna_vetada
-(declare (salience 1))
+(defrule eliminar_futura_posible_victoria
 (Contador ?num)
-?X <- (IncrePuntosPositivos)
-(not (PuntosPositivos ?aux ?num))
+(Vetar ?num)
+(Contador ?num)
+?X <- (FuturaPosibleVictoria ?j ?num)
+=>
+(retract ?X)
+)
+
+
+(defrule retractar_vetar
+(declare (salience 9999))
+(Contador ?num1)
+?X <- (Vetar ?num2)
+(test (neq ?num1 ?num2))
 =>
 (retract ?X)
 )
@@ -1197,8 +1212,6 @@
 (assert (Tablero Analisis_M ?f1 ?num _))
 (assert (Tablero Analisis_M ?f2 ?i M))
 (assert (Contador ?i))
-(assert (PuntosNegativos 0 ?i))
-(assert (PuntosPositivos 0 ?i))
 (assert (Puntuacion 0 ?i))
 )
 
@@ -1267,6 +1280,22 @@
 (assert (Contador ?i))
 )
 
+(defrule saltar_a_ultimo_contador
+(declare (salience -1))
+(Analizando)
+?X <- (Contador ?num)
+(Caeria ?f ?num)
+(FuturaPosibleVictoria M ?num)
+?Y <- (Tablero Analisis_J ?f ?num J)
+?Z <- (Tablero Analisis_M ?f ?num M)
+=>
+(retract ?X ?Y ?Z)
+(assert (Tablero Analisis_J ?f ?num _))
+(assert (Tablero Analisis_M ?f ?num _))
+(assert (Contador 8))
+)
+
+
 ;; Esta regla cambia de iteración para saltarse una iteración en la que no hace falta simular
 ;; una columna porque se encuentra completa, esto se puede comprobar con la posición de caida
 ;; de la columan, que debe ser 0 si está completa. Tiene prioridad 1 para que se lanze antes 
@@ -1309,40 +1338,12 @@
 (assert (Tablero Analisis_J ?f2 ?i J))
 (assert (Tablero Analisis_M ?f2 ?i M))
 (assert (Contador ?i))
-(assert (PuntosNegativos 0 ?i))
-(assert (PuntosPositivos 0 ?i))
 (assert (Puntuacion 0 ?i))
 )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-
-
-(defrule obtener_jugada_con_mas_puntos_negativos
-(Analizando)
-(Contador ?num)
-(test (= ?num 8))
-?X <- (PuntosNegativos ?aux1 ?num1)
-(PuntosNegativos ?aux2 ?num2)
-(test (neq ?num1 ?num2))
-(test (<= ?aux1 ?aux2))
-=>
-(retract ?X)
-)
-
-(defrule obtener_jugada_con_mas_puntos_positivos
-(Analizando)
-(Contador ?num)
-(test (= ?num 8))
-?X <- (PuntosPositivos ?aux1 ?num1)
-(PuntosPositivos ?aux2 ?num2)
-(test (neq ?num1 ?num2))
-(test (<= ?aux1 ?aux2))
-=>
-(retract ?X)
-)
 
 (defrule obtener_jugada_con_mayor_puntuacion
 (Analizando)
@@ -1364,7 +1365,7 @@
 (defrule ganar_partida
 (declare (salience -2))
 ?Y <- (Turno M)
-(PosibleVictoria Juego ?d ?f1 ?c1 ?f4 ?c4 M ?c)
+(PosibleVictoria Juego ?d ?f1 ?c1 ?f4 ?c4 M ?f ?c)
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
@@ -1374,7 +1375,7 @@
 (defrule salvar_partida
 (declare (salience -3))
 ?Y <- (Turno M)
-(PosibleVictoria Juego ?d ?f1 ?c1 ?f4 ?c4 J ?c)
+(PosibleVictoria Juego ?d ?f1 ?c1 ?f4 ?c4 J ?f ?c)
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
@@ -1384,8 +1385,7 @@
 (defrule ganar_partida_analisis
 (declare (salience -4))
 ?Y <- (Turno M)
-(PuntosPositivos ?num ?c)
-(test (>= ?num 2))
+(FuturaPosibleVictoria M ?c)
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
@@ -1395,8 +1395,7 @@
 (defrule salvar_partida_analisis
 (declare (salience -5))
 ?Y <- (Turno M)
-(PuntosNegativos ?num ?c)
-(test (>= ?num 2))
+(FuturaPosibleVictoria J ?c)
 ?X <- (Analizando)
 =>
 (retract ?X ?Y)
@@ -1418,4 +1417,25 @@
 (Juega M ?num)
 =>
 (printout t "JUEGO en la columna (con criterio) " ?num crlf)
+)
+
+
+
+
+
+
+(defrule retractar_futura_posible_victoria
+(declare (salience 9999))
+(Turno J)
+?X <- (FuturaPosibleVictoria ?j ?c)
+=>
+(retract ?X)
+)
+
+(defrule retractar_puntuacion
+(declare (salience 9999))
+(Turno J)
+?X <- (Puntuacion ?num ?c)
+=>
+(retract ?X)
 )
