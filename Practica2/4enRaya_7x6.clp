@@ -1159,6 +1159,21 @@
 (Decre 3 2) (Decre 2 1) (Decre 1 0)
 )
 
+;; Al ahora de pasar de una iteración a otra nos podemos encontrar con diferentes situaciones,
+;; las cuáles he divido en diferentes grupos, teniendo cada uno su regla:
+;;
+;;   - Cuando se pasa de una columna sin completar, a otra columna sin completar
+;;   - Cuando se pasa de una columna sin completar, a una columna completa
+;;   - Cuando se pasa de una columna sin completar, a la iteración final
+;;   - Cuando se pasa de una columna completa, a la iteración final
+;;   - Cuando se pasa de una columna en la que se encuentra una futura victoria
+;;     de la Máquina, a la iteración final
+;;   - Cuando se pasa de una columna completa, a otra columna completa
+;;   - Cuando se pasa de una columna completa, a una columna sin completar
+;;   
+;; Las siguientes reglas implementa estas situaciones en el mismo orden en el que aparecen.
+
+
 ;; Esta regla cambia de iteración, lo cuál conlleva el incremento del contador en 
 ;; una unidad y el cambio de posición de la ficha del Jugador introducida en la 
 ;; iteración anterior. Para cambiar la ficha se elimina la ficha introducida en la
