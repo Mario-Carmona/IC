@@ -1,4 +1,90 @@
 
+(deffunction obtener_frase_rechazo (?caracteristica ?valor)
+    (Frase ?caracteristica ?valor ?frase)
+    return ?frase
+)
+
+(deffunction obtener_mensaje_motivos ($?motivos)
+    (bind ?mensaje "porque ")
+    (bind ?tam (length$ ?motivos))
+    (bind ?i 1)
+    (while (< i (- ?tam 2)) do
+        (bind ?mensaje (str-cat ?mensaje (obtener_frase_rechazo ?caracteristica ?valor) ", "))
+        (bind ?i (+ ?i 2))
+    )
+
+    (if (eq ?mensaje "porque ")
+    then
+        (bind ?mensaje (str-cat ?mensaje (obtener_frase_rechazo ?caracteristica ?valor)))
+    else
+        (bind ?mensaje (str-cat ?mensaje "y " (obtener_frase_rechazo?caracteristica ?valor)))
+    )
+
+    return ?mensaje
+)
+
+
+
+(deffunction aceptar_rama (?rama $?motivos)
+    (bind ?mensaje (str-cat "Te sugiero que eligas la rama " (obtener_nombre_rama ?rama) " " (obtener_mensaje_motivos ?motivos)))
+
+    return ?mensaje
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(deffunction lanzarSiguientesPreguntas (?caracteristica ?valor)
+    (bind ?terminar FALSE)
+    (while (eq ?terminar FALSE) do
+        (SiguientePregunta (Caracteristica ?caracteristica) (Valor ?valor) (Requisitos $?requisitos) (Siguientes ?siguientes))
+        (lanzarSiguiente ?caracteristica ?valor ?requisitos ?siguientes)
+    )
+)
+
+(deffunction lanzarSiguiente (?caracteristica ?valor $?requisitos $?siguientes)
+    (AnteriorPregunta ?anterior)
+    (if (member ?anterior ?requisitos)
+    then 
+        (progn$ (?siguiente ?siguientes)
+            (assert (Pregunta ?siguiente))
+        )
+    )
+
+    return TRUE
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ;;;;;;;;;;; Registro para representar las sugerencias
 
 (deftemplate Sugerencia

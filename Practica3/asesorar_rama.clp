@@ -275,10 +275,9 @@
 (test (neq ?valor Ambas))
 (test (and (neq ?valorSuge ?valor) (neq ?valor nil)))
 (Sugerencia ?id Rama ?rama)
-?Y <- (Rechazo ?rama $?motivos)
 =>
-(assert (Rechazo ?rama ?motivos ?nombre ?valor))
-(retract ?X ?Y)
+(assert (Rechazo ?rama ?nombre ?valor))
+(retract ?X)
 )
 
 
@@ -301,14 +300,29 @@
 ;;;;;;;;;;; Reglas de las preguntas
 
 (deffacts Rangos_discretos
-(Rango Calificacion_media Alta Media Baja)
-(Rango Trabajador Mucho Normal Poco)
-(Rango Matematicas Si No)
-(Rango Hardware Si No)
-(Rango Programar Si No)
-(Rango Ambito_trabajo Docencia Empresa_publica Empresa_privada)
-(Rango Lugar_trabajo España Extranjero)
-(Rango Asignaturas Teoricas Practicas Ambas)
+(Rango Calificacion_media Alta)
+(Rango Calificacion_media Media)
+(Rango Calificacion_media Baja)
+(Rango Trabajador Mucho)
+(Rango Trabajador Normal)
+(Rango Trabajador Poco)
+(Rango Matematicas Si)
+(Rango Matematicas No)
+(Rango Hardware Si)
+(Rango Hardware No)
+(Rango Programar Si)
+(Rango Programar No)
+(Rango Ambito_trabajo Docencia)
+(Rango Ambito_trabajo Empresa_publica)
+(Rango Ambito_trabajo Empresa_privada)
+(Rango Lugar_trabajo España)
+(Rango Lugar_trabajo Extranjero)
+(Rango Asignaturas Teoricas)
+(Rango Asignaturas Practicas)
+(Rango Asignaturas Ambas)
+(Rango Nivel_abstraccion Alto)
+(Rango Nivel_abstraccion Medio)
+(Rango Nivel_abstraccion Bajo)
 )
 
 (deffacts Rangos_numericos
@@ -548,74 +562,13 @@
 )
 
 
-
-
-(deffunction obtenerValorCaracNoNumerico (?caracteristica $?rango_valores $?mensaje)
-    (bind ?valor nil)
-    (if (neq (length$ ?mensaje) 0)
-        (progn$ (?palabra ?mensaje)
-            (bind ?salida (perteneceAlRango(?palabra ?rango_valores)))
-            (if (neq ?salida nil)
-            then
-                (bind ?valor ?salida)
-            )
-        )
-    )
-    
-    (assert (Caracteristica ?caracteristica ?valor))
-)
-
-
-(deffunction obtenerValorCaracNumerico (?caracteristica ?min ?max $?mensaje)
-    (bind ?valor nil)
-    (if (neq (length$ ?mensaje) 0)
-        (progn$ (?palabra ?mensaje)
-            (bind ?salida (perteneceAlRangoNumerico(?palabra ?min ?max)))
-            (if (neq ?salida nil)
-            then
-                (bind ?valor ?salida)
-                (bind ?valor (obtenerValorCaracNume(?caracteristica ?valor)))
-            )
-        )
-    )
-    
-    (assert (Caracteristica ?caracteristica ?valor))
-)
-
-
-
-(defrule respuesta_rango_numerico
-(declare (salience 1))
-(Respuesta ?caracteristica ?mensaje)
-(RangoNumerico ?caracteristica ?min ?max)
-=>
-(obtenerValorCaracNumerico ?caracteristica ?min ?max ?mensaje)
-)
-
-
-(defrule respuesta_rango_no_numerico
-(declare (salience 1))
-(Respuesta ?caracteristica ?mensaje)
-(not (RangoNumerico ?caracteristica ?min ?max))
-(Rango ?caracteristica $?rango_valores)
-=>
-(obtenerValorCaracNoNumerico ?caracteristica ?rango_valores ?mensaje)
-)
-
-
-
-
-
-
-(deffunction perteneceAlRango (?palabra $?rango_valores)
+(deffunction perteneceAlRango (?palabra ?valor)
     (bind ?salida nil)
-    (progn$ (?valor ?rango_valores)
-        (if (eq (lowcase ?palabra) (lowcase ?valor))
-        then (bind ?salida ?valor)
-        )
+    (if (eq (lowcase ?palabra) (lowcase ?valor))
+    then (bind ?salida ?valor)
     )
 
-    ?salida
+    return ?salida
 )
 
 (deffunction perteneceAlRangoNumerico (?palabra ?min ?max)
@@ -627,13 +580,32 @@
     ?salida
 )
 
+
+(deffunction obtenerValorCaracNoNumerico (?caracteristica ?valor $?mensaje)
+    (bind ?valor nil)
+    (bind ?tam (length$ ?mensaje))
+    (if (neq ?tam 0)
+    then
+        (progn$ (?palabra ?mensaje)
+            (bind ?salida (perteneceAlRango ?palabra ?valor))
+            (if (neq ?salida nil)
+            then
+                (bind ?valor ?salida)
+            )
+        )
+    )
+    
+    (assert (Caracteristica ?caracteristica ?valor))
+)
+
+
 (deffunction obtenerValorCaracNume (?caracteristica ?valor)
     (switch ?caracteristica
         (case Calificacion_media then
             (if (and (<= 5 ?valor) (< ?valor 7))
             then
                 return Baja
-            else (if (and (<= 7 ?num) (< ?num 9))
+            else (if (and (<= 7 ?valor) (< ?valor 9))
             then
                 return Media
             else
@@ -644,39 +616,102 @@
 )
 
 
+(deffunction obtenerValorCaracNumerico (?caracteristica ?min ?max $?mensaje)
+    (bind ?valor nil)
+    (bind ?tam (length$ ?mensaje))
+    (if (neq ?tam 0)
+    then
+        (progn$ (?palabra ?mensaje)
+            (bind ?salida (perteneceAlRangoNumerico ?palabra ?min ?max))
+            (if (neq ?salida nil)
+            then
+                (bind ?valor ?salida)
+                (bind ?valor (obtenerValorCaracNume ?caracteristica ?valor))
+            )
+        )
+    )
+    
+    (assert (Caracteristica ?caracteristica ?valor))
+)
+
+
+
+(defrule respuesta_rango_numerico
+(declare (salience 1))
+?X <- (Respuesta ?caracteristica ?mensaje)
+(RangoNumerico ?caracteristica ?min ?max)
+=>
+(retract ?X)
+(obtenerValorCaracNumerico ?caracteristica ?min ?max ?mensaje)
+(assert (ObtenerSiguientesPreguntas ?caracteristica))
+)
+
+
+(defrule respuesta_rango_no_numerico
+(declare (salience 1))
+(Respuesta ?caracteristica ?mensaje)
+(not (RangoNumerico ?caracteristica ?min ?max))
+=>
+(assert (ValorCaracteristica ?caracteristica))
+)
+
+
+(defrule obtener_valor_caracteristica
+(declare (salience 2))
+(ValorCaracteristica ?caracteristica)
+(Rango ?caracteristica ?valor)
+(Respuesta ?caracteristica ?mensaje)
+=>
+(obtenerValorCaracNoNumerico ?caracteristica ?valor ?mensaje)
+)
+
+(defrule eliminar_obtener_valor_carac
+(declare (salience 1))
+?X <- (Respuesta ?caracteristica ?mensaje)
+?Y <- (ValorCaracteristica ?caracteristica)
+=>
+(retract ?X ?Y)
+(assert (ObtenerSiguientesPreguntas ?caracteristica))
+)
+
+
+
 
 
 (defrule siguientes_preguntas
-(declare (salience 1))
-?X <- (Respuesta ?caracteristica ?)
-(Caracteristica ?caracteristica ?valor)
+(declare (salience 2))
+(ObtenerSiguientesPreguntas ?caracteristica)
+(Caracteristica ?calificacion ?valor)
+(AnteriorPregunta ?anterior)
+(SiguientePregunta (Caracteristica ?caracteristica) (Valor ?valor) (Requisitos $?requisitos) (Siguientes ?siguientes))
+(test (member ?anterior ?requisitos))
 =>
-(retract ?X)
-(lanzarSiguientesPreguntas ?caracteristica ?valor)
-(if (exists (AnteriorPregunta ?nombre))
-then (retract (AnteriorPregunta ?nombre))
+(progn$ (?siguiente ?siguientes)
+    (assert (Pregunta ?siguiente))
 )
+)
+
+
+
+
+
+
+(defrule eliminar_siguientes_preguntas_primero
+(declare (salience 1))
+?X <- (ObtenerSiguientesPreguntas ?caracteristica)
+(not (AnteriorPregunta ?anterior))
+=>
 (assert (AnteriorPregunta ?caracteristica))
+(retract ?X)
 )
 
-(deffunction lanzarSiguientesPreguntas (?caracteristica ?valor)
-    (bind ?terminar FALSE)
-    (while (eq ?terminar FALSE) do
-        (SiguientePregunta (Caracteristica ?caracteristica) (Valor ?valor) (Requisitos $?requisitos) (Siguientes ?siguientes))
-        (lanzarSiguiente (?caracteristica ?valor ?requisitos ?siguientes))
-    )
-)
-
-(deffunction lanzarSiguiente (?caracteristica ?valor $?requisitos $?siguientes)
-    (AnteriorPregunta ?anterior)
-    (if (member ?anterior ?requisitos)
-    then 
-        (progn$ (?siguiente ?siguientes)
-            (assert (Pregunta ?siguiente))
-        )
-    )
-
-    return TRUE
+(defrule eliminar_siguientes_preguntas_resto
+(declare (salience 1))
+?X <- (ObtenerSiguientesPreguntas ?caracteristica)
+?Y <- (AnteriorPregunta ?anterior)
+=>
+(assert (AnteriorPregunta ?caracteristica))
+(retract ?X ?Y)
 )
 
 
@@ -689,8 +724,8 @@ then (retract (AnteriorPregunta ?nombre))
 (Sugerencia ?id Necesario ?num2)
 (test (eq ?num1 ?num2))
 =>
-(borrar_hechos_pregunta)
-(assert Elegido ?id)
+(assert (borrar_hechos_pregunta))
+(assert (Elegido ?id))
 )
 
 (defrule borrar_preguntas
@@ -709,61 +744,7 @@ then (retract (AnteriorPregunta ?nombre))
 (retract ?X)
 )
 
-(defrule obtener_motivos_aceptacion
-(declare (salience 1))
-?elegido <- (Elegido ?id $?motivos)
-?X <- (Sugerencia ?id ?nombre ?valor)
-(test (neq ?nombre Rama))
-=>
-(retract ?X)
-(insert$ ?elegido (+ (length$ ?rechazo) 1) (?nombre ?valor))
-)
 
-(defrule mostrar_sugerencia
-(Elegido ?id $?motivos)
-(Sugerencia ?id Rama ?rama)
-(bind ?mensaje (aceptar_rama (?rama ?motivos)))
-=>
-(printout t ?mensaje)
-)
-
-(deffunction aceptar_rama (?rama $?motivos)
-    (bind ?mensaje (str-cat "Te sugiero que eligas la rama " (obtener_nombre_rama(?rama)) " " (obtener_mensaje_motivos(?motivos))))
-
-    return ?mensaje
-)
-
-
-;;;;;;;;;;; Retractar pregunta realizada anteriormente
-
-(defrule retractar_pregunta
-(declare (salience 9999))
-?X <- (SiguientePregunta (Caracteristica ?nombre))
-(Caracteristica ?nombre ?valor)
-=>
-(retract ?X)
-)
-
-
-;;;;;;;;;;; Retractar rama
-
-(defrule crear_hechos_rechazo
-(declare (salience 9999))
-(Rama ?rama)
-(not (Rechazo ?rama $?))
-=>
-(assert (Rechazo ?rama))
-)
-
-
-(defrule retractar_rama
-(declare (salience 9999))
-(Rechazo ?rama $?motivos)
-(not (Sugerencia ?id Rama ?rama))
-(bind ?mensaje (rechazar_rama(?rama ?motivos)))
-=>
-(printout t ?mensaje)
-)
 
 (deffunction obtener_nombre_rama (?rama)
     (switch ?rama
@@ -785,32 +766,120 @@ then (retract (AnteriorPregunta ?nombre))
     )
 )
 
-(deffunction rechazar_rama (?rama $?motivos)
-    (bind ?mensaje (str-cat "La rama " (obtener_nombre_rama(?rama)) " ha sido rechazada " (obtener_mensaje_motivos(?motivos))))
-
-    return ?mensaje
-)
-
-(deffunction obtener_frase_rechazo (?caracteristica ?valor)
-    (Frase ?caracteristica ?valor ?frase)
-    return ?frase
-)
-
-(deffunction obtener_mensaje_motivos ($?motivos)
-    (bind ?mensaje "porque ")
-    (bind ?tam (length$ ?motivos))
+(deffunction crear_mensaje_sugerencia (?rama $?motivos)
+    (bind ?mensaje "Te sugiero que eligas la rama " (obtener_nombre_rama ?rama) " porque ")
     (bind ?i 1)
-    (while (< i (- ?tam 2)) do
-        (bind ?mensaje (str-cat ?mensaje (obtener_frase_rechazo(?caracteristica ?valor)) ", "))
-        (bind ?i (+ ?i 2))
+    (bind ?tam (length$ ?motivos))
+    (while (< ?i (- ?tam 1)) do
+        (bind ?mensaje (str-cat ?mensaje (nth$ ?i ?motivos) ", "))
     )
 
-    (if (eq ?mensaje "porque ")
+    (if (eq ?i 1)
     then
-        (bind ?mensaje (str-cat ?mensaje (obtener_frase_rechazo(?caracteristica ?valor))))
+        (bind ?mensaje (str-cat ?mensaje (nth$ ?i ?motivos)))
     else
-        (bind ?mensaje (str-cat ?mensaje "y " (obtener_frase_rechazo(?caracteristica ?valor))))
+        (bind ?mensaje (str-cat ?mensaje "y " (nth$ ?i ?motivos)))
     )
-
+    
     return ?mensaje
 )
+
+(defrule añadir_motivo_sugerencia
+?X <- (Motivos $?motivos)
+(Elegido ?id)
+?Y <- (Sugerencia ?id ?nombre ?valor)
+(test (neq ?nombre Rama))
+(Frase ?nombre ?valor ?frase)
+=>
+(retract ?X ?Y)
+(assert (Motivos ?motivos ?frase))
+)
+
+(defrule mostrar_mensaje_sugerencia
+?X <- (Motivos $?motivos)
+?Y <- (Elegido ?id)
+(not (Sugerencia ?id ? ?))
+(Sugerencia ?id Rama ?rama)
+=>
+(retract ?X ?Y)
+(bind ?mensaje (crear_mensaje_sugerencia ?rama ?motivos))
+(printout t ?mensaje)
+)
+
+
+
+(defrule mostrar_sugerencia
+(Elegido ?id)
+(Sugerencia ?id Rama ?rama)
+(not (Mensaje ?))
+=>
+(assert (Motivos))
+)
+
+
+
+
+;;;;;;;;;;; Retractar pregunta realizada anteriormente
+
+(defrule retractar_pregunta
+(declare (salience 9999))
+?X <- (SiguientePregunta (Caracteristica ?nombre))
+(Caracteristica ?nombre ?valor)
+=>
+(retract ?X)
+)
+
+
+;;;;;;;;;;; Retractar rama
+
+(deffunction crear_mensaje_rechazo_rama (?rama $?motivos)
+    (bind ?mensaje "La rama " (obtener_nombre_rama ?rama) " ha sido rechazada porque ")
+    (bind ?i 1)
+    (bind ?tam (length$ ?motivos))
+    (while (< ?i (- ?tam 1)) do
+        (bind ?mensaje (str-cat ?mensaje (nth$ ?i ?motivos) ", "))
+    )
+
+    (if (eq ?i 1)
+    then
+        (bind ?mensaje (str-cat ?mensaje (nth$ ?i ?motivos)))
+    else
+        (bind ?mensaje (str-cat ?mensaje "y " (nth$ ?i ?motivos)))
+    )
+    
+    return ?mensaje
+)
+
+(defrule añadir_motivo_rechazo_rama
+?X <- (MotivosRechazo ?rama $?motivos)
+?Y <- (Rechazo ?rama ?nombre ?valor)
+(Frase ?nombre ?valor ?frase)
+=>
+(retract ?X ?Y)
+(assert (MotivosRechazo ?rama ?motivos ?frase))
+)
+
+(defrule mostrar_mensaje_rechazo_rama
+?X <- (MotivosRechazo ?rama $?motivos)
+(not (Rechazo ?rama ? ?))
+=>
+(retract ?X)
+(bind ?mensaje (crear_mensaje_rechazo_rama ?rama ?motivos))
+(printout t ?mensaje)
+)
+
+
+(defrule retractar_rama
+(declare (salience 9999))
+(Rechazo ?rama $?)
+(not (Sugerencia ? Rama ?rama))
+=>
+(assert (MotivosRechazo ?rama))
+)
+
+
+
+
+
+
+
