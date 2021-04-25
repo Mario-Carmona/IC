@@ -1,7 +1,7 @@
 ;;;;;;; ASESORAR RAMA DE INGENIERIA INFORMATICA A UN ESTUDIANTE ;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;; Hechos para representar las ramas
+;;;;;;;;;;;;;;;; Hechos para representar las ramas a sugerir
 
 (deffacts Ramas
     (Rama Computación_y_Sistemas_Inteligentes)
@@ -17,36 +17,47 @@
 ;; El sistema utiliza las siguientes características:
 ;;
 ;; - Calificación media obtenida, tomando valores de Alta, Media
-;;   ó Baja, y se representa por (Calificacion_media Alta|Media|Baja)
+;;   ó Baja, y se representa por (Caracteristica Calificacion_media Alta|Media|Baja)
 ;;
 ;; - Es trabajador, tomando valores de Poco, Normal ó Mucho, y se
-;;   representa por (Trabajador Poco|Normal|Mucho)
+;;   representa por (Caracteristica Trabajador Poco|Normal|Mucho)
 ;;
 ;; - Le gustan las matemáticas, tomando valores de Si ó No, y se
-;;   representa por (Matematicas Si|No)
+;;   representa por (Caracteristica Matematicas Si|No)
 ;;
 ;; - Le gusta hardware, tomando valores de Si ó No, y se representa
-;;   por (Hardware Si|No)
+;;   por (Caracteristica Hardware Si|No)
 ;;
 ;; - Le gusta programar, tomando valores de Si ó No, y se representa
-;;   por (Programar Si|No)
+;;   por (Caracteristica Programar Si|No)
 ;;
 ;; - En que ámbito quiere trabajar, tomando valores de Docencia, Empresa pública
-;;   ó Empresa privada, y se presenta por (Ambito_trabajo Docencia|EmpresaPública|
+;;   ó Empresa privada, y se presenta por (Caracteristica Ambito_trabajo Docencia|EmpresaPública|
 ;;   EmpresaPrivada)
 ;;
 ;; - En que lugar quiere trabajar, tomando valores de España ó Extranjero,
-;;   y se representa por (Lugar_trabajo España|Extranjero)
+;;   y se representa por (Caracteristica Lugar_trabajo España|Extranjero)
 ;;
 ;; - Prefiere asignaturas teóricas o prácticas, tomando valores de
 ;;   Teóricas, Prácticas ó Ambas, y se representa por
-;;   (Asignaturas Teóricas|Prácticas|Ambas)
+;;   (Caracteristica Asignaturas Teóricas|Prácticas|Ambas)
 ;;
 ;; - Nivel de abstración, tomando valores de Bajo, Medio ó Alto, y
-;;   se representa por (Nivel_abstraccion Alto|Medio|Bajo)
+;;   se representa por (Caracteristica Nivel_abstraccion Alto|Medio|Bajo)
 
 
-;;;;;;;;;;; Sugerencias
+;;;;;;;;;;;;;;;; Hechos para representar las distintas sugerencias, formadas
+;;;;;;;;;;;;;;;; por las combinación de distintos valores de las característica.
+
+;; Cada hecho no debe contener el valor de todas las características, se puede
+;; dejar sin valor, lo que significa que no se tiene en cuenta en la aceptación de esa sugerencia.
+;;
+;; Cada sugerencia está compuesta de varios hechos (Sugerencia ?id ?caracteristica ?valor),
+;; que representan el ?valor necesario en la ?caracteristica para aceptar la sugerencia con
+;; identificador igual a ?id.
+;;
+;; Además contiene un hecho (Sugerencia ?id Rama ?valor_rama), que representa la rama que se sugiere
+;; es en la sugerencia con identificador igual a ?id.
 
 (deffacts Sugerencias
     (Sugerencia 1 Ambito_trabajo "Docencia")
@@ -344,7 +355,12 @@
     (Sugerencia 46 Rama Ingeniería_del_Software)
 )
 
-;;;;;  Regla para añadir el contador a cada sugerencia
+
+;;;;;;;;;;;;;;;; Regla para añadir el contador a cada sugerencia
+
+;; Este contador aumenta cada vez que se obtiene un valor de una característica que coincide
+;; con el valor de esa característica en la sugerencia, o cuando se obtiene se responde NSNC
+;; al valor de la característica.
 
 (defrule aniadir_contador
 (declare (salience 2))
@@ -353,6 +369,10 @@
 =>
 (assert (Sugerencia ?id Contador 0))
 )
+
+;;;;;;;;;;;;;;;; Regla para aumentar el contador de una sugerencia
+
+;; Se activa cuando se cumplen las condicciones del test
 
 (defrule aumentar_contador
 (declare (salience 2))
@@ -363,6 +383,8 @@
 (assert (IncreContador ?id))
 )
 
+;; El incremento se hace en otra regla, para no entrar en un bucle infinito
+
 (defrule incremento_contador
 (declare (salience 2))
 ?X <- (IncreContador ?id)
@@ -372,7 +394,14 @@
 (assert (Sugerencia ?id Contador (+ ?num 1)))
 )
 
-;;;;;  Regla para añadir el número necesario a cada sugerencia
+
+;;;;;;;;;;;;;;;; Regla para añadir el número necesario de características de cada sugerencia
+
+;; El número necesario de características es igual al número de hechos (Sugerencia ?id ?caracteristica ?valor)
+;; que tiene una sugerencia. Este hecho se utiliza para comprobar cuando se han cumplido todos los
+;; requisitos de una sugerencia, es decir, cuando el contador tenga el mismo valor que este hecho, quiere
+;; decir que todos los valores obtenidos de las características son iguales en esta sugerencia, por lo que es
+;; aceptada como sugerencia.
 
 (defrule aniadir_necesario
 (declare (salience 2))
@@ -381,6 +410,10 @@
 =>
 (assert (Sugerencia ?id Necesario 0))
 )
+
+;;;;;;;;;;;;;;;; Regla para aumentar el contador de una sugerencia
+
+;; Se activa cuando se cumplen las condicciones del test
 
 (defrule aumentar_necesario
 (declare (salience 2))
@@ -392,6 +425,8 @@
 (assert (IncreNecesario ?id))
 )
 
+;; El incremento se hace en otra regla, para no entrar en un bucle infinito
+
 (defrule incremento_necesario
 (declare (salience 2))
 ?X <- (IncreNecesario ?id)
@@ -402,7 +437,12 @@
 )
 
 
-;;;;;;;;;;; Retractar sugerencia
+;;;;;;;;;;;;;;;; Regla para retractar una sugerencia
+
+;; Retractar una sugerencia consiste en eliminar el hecho de la característica
+;; que tiene un valor distinto al esperado, y se añade un hecho (Rechazo ?rama ?motivo),
+;; que representa que una sugerencia de cierta rama ha sido rechaza por el motivo indicado
+;; en el hecho.
 
 (defrule retractar_sugerencia
 (declare (salience 9999))
@@ -417,23 +457,7 @@
 )
 
 
-;;;;;;;;;;; Hechos de la siguiente pregunta
-
-;; Para indicar la siguiente pregunta que se debe realizar en base a las sugerencias
-;; que siguen activas, y a las respuestas recibidas de preguntas anteriores.
-;; Este hecho se representa por (SiguientePregunta Característica).
-;;
-;; Al realizar una pregunta se añaden los hechos de las preguntas que van después
-;; de la pregunta actual en todas las reglas.
-;;
-;; Se añade la pregunta inicial para iniciar la conversación.
-
-(deffacts Pregunta_inicial
-(Pregunta Ambito_trabajo)
-)
-
-
-;;;;;;;;;;; Reglas de las preguntas
+;;;;;;;;;;;;;;;; Hechos para representar los rangos discretos de las características
 
 (deffacts Rangos_discretos
 (Rango Calificacion_media "Alta" "Media" "Baja")
@@ -447,10 +471,21 @@
 (Rango Nivel_abstraccion "Alto" "Medio" "Bajo")
 )
 
+;;;;;;;;;;;;;;;; Hechos para representar los rangos continuos de las características
+;;;;;;;;;;;;;;;; cuyo valor recibido por la entrada sea continuo
+
 (deffacts Rangos_numericos
 (RangoNumerico Calificacion_media 5 10)
 )
 
+
+;;;;;;;;;;;;;;;; Registro para representar la siguiente pregunta a la realizada anteriormente
+
+;; El nombre de la característica y su valor deben indicarse si o si para crear un hecho de este
+;; registro. Requisitos es una lista de las preguntas que deben haberse realiza justo antes de realizar
+;; la pregunta de la característica que se indica en el hecho. Siguientes es la lista de preguntas que se 
+;; realizan después de haber realizar la pregunta de la característica que se indica en el hecho y haber obtenido
+;; en el valor indicado en hecho SiguientePregunta.
 
 (deftemplate SiguientePregunta
     (field Caracteristica (default ?NONE))
@@ -458,6 +493,8 @@
     (multifield Requisitos)
     (multifield Siguientes)
 )
+
+;;;;;;;;;;;;;;;; Hechos para representar la siguiente pregunta a la realizada anteriormente
 
 (deffacts SiguientesPreguntas
     (SiguientePregunta
@@ -582,6 +619,25 @@
         (Siguientes Matematicas))
 )
 
+
+;;;;;;;;;;;;;;;; Regla para obtener la primera pregunta
+
+;; Esta regla consiste en buscar aquella característica que para realizar
+;; su pregunta no hagan falta requisitos.
+
+(defrule obtener_pregunta_inicial
+(SiguientePregunta (Caracteristica ?caracteristica) (Requisitos))
+=>
+(assert (Pregunta ?caracteristica))
+)
+
+;;;;;;;;;;;;;;;; Hechos para representar las frases utilizadas en la comunicación
+;;;;;;;;;;;;;;;; con el estudiante
+
+;; Estas frases son las introductorias a la pregunta. Se emprezará la introducción a la pregunta
+;; de diferente manera dependiendo de si es la primera pregunta o no, y de el valor obtenido 
+;; en la ultima pregunta
+
 (deffacts Frases
     (Frase Inicio "En primer lugar" "Bien vamos a comenzar")
     (Frase Resto "Ya que" "Como")
@@ -610,6 +666,8 @@
     (Frase Nivel_abstraccion "Bajo" "tu nivel de abstraccion es bajo")
 )
 
+;; Estas frases son las preguntas de cada caractarística.
+
 (deffacts Preguntas
     (FrasePregunta Calificacion_media "que nota media tienes?")
     (FrasePregunta Trabajador "me puedes decir como de trabajador eres (Mucho, Normal, Poco o NSNC)?")
@@ -623,29 +681,30 @@
 )
 
 
-;;;;;;;; Reglas para obtener la frase de la primera preguntas
+;;;;;;;;;;;;;;;; Reglas para obtener la frase de la primera pregunta
 
-(deffunction obtenerFrasePreguntaInicio(?resto_frase $?frases)
+(deffunction obtenerFrasePreguntaInicio(?intro $?frases)
     (bind ?frase (nth$ (random 1 (length$ ?frases)) ?frases))
-    (bind ?frase (str-cat ?frase ", " ?resto_frase " "))
+    (bind ?frase (str-cat ?frase ", " ?intro " "))
 
     return ?frase
 )
 
 
-;;;;;;;; Reglas para obtener la frase del resto de preguntas
+;;;;;;;;;;;;;;;; Reglas para obtener la frase del resto de preguntas
 
-(deffunction obtenerFrasePreguntaResto(?resto_frase1 ?resto_frase2 $?frases)
+(deffunction obtenerFrasePreguntaResto(?intro ?pregunta $?frases)
     (bind ?frase (nth$ (random 1 (length$ ?frases)) ?frases))
-    (bind ?frase (str-cat ?frase " " ?resto_frase1 ", " ?resto_frase2 " "))
+    (bind ?frase (str-cat ?frase " " ?intro ", " ?pregunta " "))
 
     (printout t ?frase)
 )
 
 
-;;;;;;;;; Comprobaciones de la pregunta para características no numéricas
+;;;;;;;;;;;;;;;; Función para comprobar si el valor obtenido en la pregunta
+;;;;;;;;;;;;;;;; es correcto respecto del rango discreto de la característica
 
-(deffunction perteneceAlRango (?palabra $?rango)
+(deffunction perteneceAlRangoDiscreto (?palabra $?rango)
     (bind ?valor "Repetir")
     (if (eq (lowcase ?palabra) "nsnc")
     then
@@ -669,7 +728,8 @@
 )
 
 
-;;;;;;;;; Comprobaciones de la pregunta para características numéricas
+;;;;;;;;;;;;;;;; Función para obtener el valor discreto de una característica
+;;;;;;;;;;;;;;;; a partir de su valor continuo
 
 (deffunction obtenerValorNumerico (?caracteristica ?valor)
     (switch ?caracteristica
@@ -687,7 +747,11 @@
     )
 )
 
-(deffunction perteneceAlRangoNumerico (?palabra ?min ?max)
+
+;;;;;;;;;;;;;;;; Funciones para comprobar si el valor obtenido en la pregunta
+;;;;;;;;;;;;;;;; es correcto respecto del rango continuo de la característica
+
+(deffunction perteneceAlRangoContinuo (?palabra ?min ?max)
     (bind ?salida nil)
     (if (and (<= ?min ?palabra) (<= ?palabra ?max))
     then (bind ?salida ?palabra)
@@ -696,13 +760,16 @@
     ?salida
 )
 
-(deffunction obtenerValorCaracNumerico (?caracteristica ?min ?max ?mensaje)
+;; Primero se comprueba si está en su rango continuo, y si lo está se obtiene
+;; el valor discreto a partir del valor continuo obtenido y se devuelve
+
+(deffunction obtenerValorDiscretoCarac (?caracteristica ?min ?max ?mensaje)
     (bind ?valor "Repetir")
     (if (eq (lowcase (str-cat ?mensaje)) "nsnc")
     then
         (bind ?valor "nil")
     else
-        (bind ?salida (perteneceAlRangoNumerico ?mensaje ?min ?max))
+        (bind ?salida (perteneceAlRangoContinuo ?mensaje ?min ?max))
         (if (neq ?salida nil)
         then
             (bind ?valor ?salida)
@@ -714,14 +781,12 @@
 )
 
 
+;;;;;;;;;;;;;;;; Preguntas
 
-;;;;;;;;;;;;;;; Preguntas
+;; En el caso de ser la primera pregunta y ser sobre una característica de la que se
+;; obtiene un valor continuo
 
-;;;;;;;;;;; Primera pregunta
-
-;;;;;; Característica numérica
-
-(defrule pregunta_inicio_numerico
+(defrule pregunta_inicio_continuo
 ?X <- (Pregunta ?caracteristica)
 (not (AnteriorPregunta ?nombre))
 (Frase Inicio $?frases)
@@ -731,14 +796,15 @@
 (bind ?frase (obtenerFrasePreguntaInicio ?restoFrase ?frases))
 (printout t ?frase)
 (bind ?mensaje (read))
-(bind ?valor (obtenerValorCaracNumerico ?caracteristica ?min ?max ?mensaje))
+(bind ?valor (obtenerValorDiscretoCarac ?caracteristica ?min ?max ?mensaje))
 (assert (Respuesta ?caracteristica ?valor))
 (retract ?X)
 )
 
-;;;;;; Característica no numérica
+;; En el caso de ser la primera pregunta y ser sobre una característica de la que se
+;; obtiene un valor discreto
 
-(defrule pregunta_inicio_no_numerico
+(defrule pregunta_inicio_discreto
 ?X <- (Pregunta ?caracteristica)
 (not (AnteriorPregunta ?nombre))
 (Frase Inicio $?frases)
@@ -749,18 +815,15 @@
 (bind ?frase (obtenerFrasePreguntaInicio ?restoFrase ?frases))
 (printout t ?frase)
 (bind ?mensaje (readline))
-(bind ?valor (perteneceAlRango ?mensaje ?rango))
+(bind ?valor (perteneceAlRangoDiscreto ?mensaje ?rango))
 (assert (Respuesta ?caracteristica ?valor))
 (retract ?X)
 )
 
-;;;;;;;;;;; Resto de preguntas
+;; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
+;; obtiene un valor continuo
 
-;;;;;; Característica numérica
-
-
-
-(defrule pregunta_resto_numerico
+(defrule pregunta_resto_continuo
 ?X <- (Pregunta ?caracteristica)
 (RangoNumerico ?carac ?min ?max)
 (test (eq ?caracteristica ?carac))
@@ -773,14 +836,15 @@
 (bind ?frase (obtenerFrasePreguntaResto ?restoFrase1 ?restoFrase2 ?frases))
 (printout t ?frase)
 (bind ?mensaje (read))
-(bind ?valor (obtenerValorCaracNumerico ?caracteristica ?min ?max ?mensaje))
+(bind ?valor (obtenerValorDiscretoCarac ?caracteristica ?min ?max ?mensaje))
 (assert (Respuesta ?caracteristica ?valor))
 (retract ?X)
 )
 
-;;;;;; Característica no numérica
+;; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
+;; obtiene un valor discreto
 
-(defrule pregunta_resto_no_numerico
+(defrule pregunta_resto_discreto
 ?X <- (Pregunta ?caracteristica)
 (AnteriorPregunta ?nombre)
 (Caracteristica ?nombre ?valor)
@@ -793,13 +857,17 @@
 (bind ?frase (obtenerFrasePreguntaResto ?restoFrase1 ?restoFrase2 ?frases))
 (printout t ?frase)
 (bind ?mensaje (readline))
-(bind ?valor (perteneceAlRango ?mensaje ?rango))
+(bind ?valor (perteneceAlRangoDiscreto ?mensaje ?rango))
 (assert (Respuesta ?caracteristica ?valor))
 (retract ?X)
 )
 
 
-;;;;;;; Regla para volver a preguntas
+;;;;;;;;;;;;;;;; Regla para volver a preguntar
+
+;; Se vuelve a realizar la pregunta si el valor obtenido no está contenido
+;; en el rango de la característica. El rango no se tiene en cuenta si se
+;; responde NSNC.
 
 (defrule volver_a_preguntar
 (declare (salience 9999))
@@ -810,8 +878,11 @@
 (retract ?X)
 )
 
-;;;;;;;; Regla para seguir con la obtención de las siguientes preguntas
 
+;;;;;;;;;;;;;;;; Regla para seguir con la obtención de las siguientes preguntas
+
+;; Se sigue con el proceso si el valor obtenido es NSNC o está en el rango de 
+;; la característica.
 
 (defrule gestionar_respuesta
 (declare (salience 9999))
@@ -824,14 +895,18 @@
 )
 
 
-;;;;;;; Regla para obtener un elemento de una lista
+;;;;;;;;;;;;;;;; Función para obtener un elemento de una lista
 
 (deffunction obtener_elem_lista (?indice $?lista)
     return (nth$ ?indice ?lista)
 )
 
 
-;;;;;;;; Regla para obtener las siguientes preguntas a la realiza como primera pregunta
+;;;;;;;;;;;;;;;; Regla para obtener la siguientes preguntas después de haber realizado la primera pregunta
+
+;; Se crea un hecho (Pregunta ?caracteristica) por cada elemento de la lista de siguientes preguntas,
+;; teniendo en cuenta la última pregunta realizada y el valor obtenido. Además se actualiza el hecho
+;; (AnteriorPregunta ?caracteristica) con la característica sobre la que se acaba de realizar la pregunta.
 
 (defrule siguientes_preguntas_primero
 (declare (salience 1))
@@ -852,7 +927,12 @@
 (assert (AnteriorPregunta ?caracteristica))
 )
 
-;;;;;;;; Regla para obtener las siguientes preguntas a la realiza en el resto de preguntas
+
+;;;;;;;;;;;;;;;; Regla para obtener la siguientes preguntas después de haber realizado una pregunta que no sea la primera
+
+;; Se crea un hecho (Pregunta ?caracteristica) por cada elemento de la lista de siguientes preguntas,
+;; teniendo en cuenta la última pregunta realizada y el valor obtenido. Además se actualiza el hecho
+;; (AnteriorPregunta ?caracteristica) con la característica sobre la que se acaba de realizar la pregunta.
 
 (defrule siguientes_preguntas_resto
 (declare (salience 1))
@@ -875,7 +955,10 @@
 )
 
 
-;;;;;;;;; Sugerir rama
+;;;;;;;;;;;;;;;; Regla para aceptar una sugerencia
+
+;; Si se cumplen todos los requisitos de un sugerencia, acepta y se mostrará el 
+;; mensaje de sugerencia al final del proceso de deducción.
 
 (defrule sugerir_rama
 (declare (salience 1))
@@ -887,18 +970,7 @@
 )
 
 
-;;;;;;;;;;; Terminar dedución e indicar las sugerencias aceptadas
-
-(defrule terminar_deducion
-(declare (salience -1))
-(not (Pregunta ?))
-(SugeAceptada ?mensaje)
-=>
-(printout t ?mensaje crlf)
-)
-
-
-;;;;;;; Función para obtener el nombre de una rama como String
+;;;;;;;;;;;;;;;; Función para obtener el nombre de una rama como String
 
 (deffunction obtener_nombre_rama (?rama)
     (switch ?rama
@@ -920,7 +992,9 @@
     )
 )
 
-;;;;; Regla para crear el hecho Motivos de una sugerencia de rama
+
+;;;;;;;;;;;;;;;; Regla para crear la lista de motivos por los que ha sido
+;;;;;;;;;;;;;;;; aceptada una sugerencia
 
 (defrule mostrar_sugerencia
 (Elegido ?id)
@@ -928,7 +1002,8 @@
 (assert (Motivos ?id))
 )
 
-;;;;; Regla que va a añadiendo los motivos por los que es sugerida la rama
+
+;;;;;;;;;;;;;;;; Regla para añadir los motivos a la lista de la sugerencia aceptada
 
 (defrule añadir_motivo_sugerencia
 (declare (salience 1))
@@ -943,8 +1018,8 @@
 (assert (Motivos ?id ?motivos ?frase))
 )
 
-;;;;;; Función para crear el String que será el mensaje de sugerencia de una rama
-;;;;;; con sus motivos de sugerencia
+
+;;;;;;;;;;;;;;;; Función para crear el mensaje que indique la aceptación de la sugerencia con sus motivos
 
 (deffunction crear_mensaje_sugerencia (?rama $?motivos)
     (bind ?mensaje (str-cat "Te sugiero que eligas la rama " (obtener_nombre_rama ?rama) " porque "))
@@ -965,7 +1040,10 @@
     return ?mensaje
 )
 
-;;;;; Regla que crea el mensaje de sugerencia de una rama con sus motivos
+;;;;;;;;;;;;;;;; Regla para crea el mensaje de aceptación de una sugerencia
+
+;; Esta regla se lanza cuando ya se han añadido todos los motivos de la
+;; aceptación de la sugerencia
 
 (defrule mostrar_mensaje_sugerencia
 ?X <- (Motivos ?id $?motivos)
@@ -978,8 +1056,22 @@
 )
 
 
+;;;;;;;;;;;;;;;; Regla para mostrar el mensaje de las sugerencias aceptadas
 
-;;;;;;;;;;; Retractar pregunta realizada anteriormente
+;; Esta regla sólo se lanza si se ha terminado de deducir.
+
+(defrule terminar_deducion
+(declare (salience -1))
+(not (Pregunta ?))
+(SugeAceptada ?mensaje)
+=>
+(printout t ?mensaje crlf)
+)
+
+
+;;;;;;;;;;;;;;;; Regla para retractar una pregunta realizada anteriormente
+
+;; Si ya se ha realizado una pregunta sobre una característica, no se vuelve a realizar.
 
 (defrule retractar_pregunta
 (declare (salience 9999))
@@ -990,7 +1082,10 @@
 )
 
 
-;;;;;;;;;;; Retractar rama, y se crea el hecho MotivosRechazo
+;;;;;;;;;;;;;;;; Regla para retractar una rama
+
+;; Una rama se retracta cuando no hay sugerencia de esa rama, por lo que
+;; se crea una lista de motivos por lo que ha sido rechazada la sugerencia de la rama.
 
 (defrule retractar_rama
 (declare (salience 9999))
@@ -1000,6 +1095,11 @@
 (assert (MotivosRechazo ?rama))
 )
 
+;; Esta regla también retracta una regla, pero en este caso al haber terminado
+;; la deducción, no se tiene que esperar a que no hay sugerencias de la rama
+;; rechazada. En este caso también se crea una lista de motivos por los que han 
+;; sido rechazadas las sugerencia de la rama retractada. 
+
 (defrule retractar_rama_al_terminar
 (declare (salience -1))
 (Rechazo ?rama $?)
@@ -1008,7 +1108,8 @@
 (assert (MotivosRechazo ?rama))
 )
 
-;;;;;; Regla para añadir los motivos del rechazo de la rama
+
+;;;;;;;;;;;;;;;; Regla para añadir los motivos del rechazo de la rama
 
 (defrule añadir_motivo_rechazo_rama
 ?X <- (MotivosRechazo ?rama $?motivos)
@@ -1019,8 +1120,7 @@
 (assert (MotivosRechazo ?rama ?motivos ?frase))
 )
 
-;;;;;; Función para crear el String que será el mensaje de un rechazo de una rama
-;;;;;; con sus motivos de rechazo
+;;;;;;;;;;;;;;;; Función para crear el mensaje que indique el rechazo de la sugerencia con sus motivos
 
 (deffunction crear_mensaje_rechazo_rama (?rama $?motivos)
     (bind ?mensaje (str-cat "La rama " (obtener_nombre_rama ?rama) " ha sido rechazada porque "))
@@ -1041,7 +1141,8 @@
     return ?mensaje
 )
 
-;;;;; Regla que crea y muestra el mensaje de rechazo de una rama con sus motivos
+
+;;;;;;;;;;;;;;;; Regla para crear y mostrar el mensaje de las ramas rechazadas
 
 (defrule mostrar_mensaje_rechazo_rama
 ?X <- (MotivosRechazo ?rama $?motivos)
