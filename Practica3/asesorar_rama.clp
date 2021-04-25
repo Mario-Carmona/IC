@@ -36,7 +36,7 @@
 ;;   EmpresaPrivada)
 ;;
 ;; - En que lugar quiere trabajar, tomando valores de España ó Extranjero,
-;;   y se representa por (Caracteristica Lugar_trabajo España|Extranjero)
+;;   y se representa por (Caracteristica Lugar_trabajo Espania|Extranjero)
 ;;
 ;; - Prefiere asignaturas teóricas o prácticas, tomando valores de
 ;;   Teóricas, Prácticas ó Ambas, y se representa por
@@ -296,25 +296,25 @@
     (Sugerencia 36 Rama Tecnologías_de_la_Información)
     
     (Sugerencia 37 Ambito_trabajo "Empresa_privada")
-    (Sugerencia 37 Lugar_trabajo "España")
+    (Sugerencia 37 Lugar_trabajo "Espania")
     (Sugerencia 37 Programar "Si")
     (Sugerencia 37 Calificacion_media "Alta")
     (Sugerencia 37 Rama Ingeniería_del_Software)
     
     (Sugerencia 38 Ambito_trabajo "Empresa_privada")
-    (Sugerencia 38 Lugar_trabajo "España")
+    (Sugerencia 38 Lugar_trabajo "Espania")
     (Sugerencia 38 Programar "Si")
     (Sugerencia 38 Calificacion_media "Media")
     (Sugerencia 38 Rama Ingeniería_del_Software)
     
     (Sugerencia 39 Ambito_trabajo "Empresa_privada")
-    (Sugerencia 39 Lugar_trabajo "España")
+    (Sugerencia 39 Lugar_trabajo "Espania")
     (Sugerencia 39 Programar "Si")
     (Sugerencia 39 Calificacion_media "Baja")
     (Sugerencia 39 Rama Tecnologías_de_la_Información)
     
     (Sugerencia 40 Ambito_trabajo "Empresa_privada")
-    (Sugerencia 40 Lugar_trabajo "España")
+    (Sugerencia 40 Lugar_trabajo "Espania")
     (Sugerencia 40 Programar "No")
     (Sugerencia 40 Rama Sistemas_de_Información)
     
@@ -372,7 +372,8 @@
 
 ;;;;;;;;;;;;;;;; Regla para aumentar el contador de una sugerencia
 
-;; Se activa cuando se cumplen las condicciones del test
+;; Se activa cuando se cumplen se obtiene como resultado de la pregunta
+;; nil ó el valor que se indica en la sugerencia para esa característica
 
 (defrule aumentar_contador
 (declare (salience 2))
@@ -413,7 +414,7 @@
 
 ;;;;;;;;;;;;;;;; Regla para aumentar el contador de una sugerencia
 
-;; Se activa cuando se cumplen las condicciones del test
+;; Se activa por cada valor de características indicado en la sugerencia
 
 (defrule aumentar_necesario
 (declare (salience 2))
@@ -449,7 +450,7 @@
 ?X <- (Sugerencia ?id ?nombre ?valorSuge)
 (test (neq ?nombre Rama))
 (Caracteristica ?nombre ?valor)
-(test (and (neq ?valorSuge ?valor) (neq ?valor nil)))
+(test (and (neq ?valorSuge ?valor) (neq ?valor "nil")))
 (Sugerencia ?id Rama ?rama)
 =>
 (assert (Rechazo ?rama ?nombre ?valor))
@@ -466,7 +467,7 @@
 (Rango Hardware "Si" "No")
 (Rango Programar "Si" "No")
 (Rango Ambito_trabajo "Docencia" "Empresa_publica" "Empresa_privada")
-(Rango Lugar_trabajo "España" "Extranjero")
+(Rango Lugar_trabajo "Espania" "Extranjero")
 (Rango Asignaturas "Teoricas" "Practicas" "Ambas")
 (Rango Nivel_abstraccion "Alto" "Medio" "Bajo")
 )
@@ -611,7 +612,7 @@
         (Siguientes Nivel_abstraccion))
     (SiguientePregunta
         (Caracteristica Lugar_trabajo)
-        (Valor "España")
+        (Valor "Espania")
         (Requisitos Ambito_trabajo)
         (Siguientes Programar))
     (SiguientePregunta
@@ -622,15 +623,10 @@
 )
 
 
-;;;;;;;;;;;;;;;; Regla para obtener la primera pregunta
+;;;;;;;;;;;;;;;; Hechos de las primeras preguntas
 
-;; Esta regla consiste en buscar aquella característica que para realizar
-;; su pregunta no hagan falta requisitos.
-
-(defrule obtener_pregunta_inicial
-(SiguientePregunta (Caracteristica ?caracteristica) (Requisitos))
-=>
-(assert (Pregunta ?caracteristica))
+(deffacts PreguntasIniciales
+    (Anterior Ninguno Pregunta Ambito_trabajo)
 )
 
 ;;;;;;;;;;;;;;;; Hechos para representar las frases utilizadas en la comunicación
@@ -658,7 +654,7 @@
     (Frase Ambito_trabajo "Docencia" "el ambito en el que quieres trabajar es la docencia")
     (Frase Ambito_trabajo "Empresa_publica" "el ambito en el que quieres trabajar es la empresa publica")
     (Frase Ambito_trabajo "Empresa_privada" "el ambito en el que quieres trabajar es la empresa privada")
-    (Frase Lugar_trabajo "España" "el lugar donde quieres trabajar es España")
+    (Frase Lugar_trabajo "Espania" "el lugar donde quieres trabajar es España")
     (Frase Lugar_trabajo "Extranjero" "el lugar donde quieres trabajar es en el extranjero")
     (Frase Asignaturas "Practicas" "prefieres las asignaturas practicas")
     (Frase Asignaturas "Teoricas" "prefieres las asignaturas teoricas")
@@ -677,7 +673,7 @@
     (FrasePregunta Programar "me puedes decir si te gusta programar (Si, No o NSNC)?")
     (FrasePregunta Hardware "me puedes decir si te gusta el hardware (Si, No o NSNC)?")
     (FrasePregunta Ambito_trabajo "en que ambito del trabajo te gustaria trabajar (Docencia, Empresa publica, Empresa privada o NSNC)?")
-    (FrasePregunta Lugar_trabajo "en que lugar te gustaria trabajar (España, Extranjero o NSNC)?")
+    (FrasePregunta Lugar_trabajo "en que lugar te gustaria trabajar (Espania, Extranjero o NSNC)?")
     (FrasePregunta Asignaturas "que tipo de asignaturas prefieres (Teoricas, Practicas, Ambas o NSNC)?")
     (FrasePregunta Nivel_abstraccion "que nivel de abstraccion tienes (Alto, Medio, Bajo o NSNC)?")
 )
@@ -783,14 +779,50 @@
 )
 
 
+;;;;;;;;;;;;;;;; Función para obtener la introducción a la frase en el caso 
+;;;;;;;;;;;;;;;; de que se haya respodido de forma parcial a una pregunta, es
+;;;;;;;;;;;;;;;; decir, ha respondido NSNC
+
+(deffunction obtener_nombre_caracteristica (?caracteristica)
+    (switch ?caracteristica
+        (case Ambito_trabajo then 
+            return "no has sabido responder a la pregunta del ambito de trabajo"
+        )
+        (case Calificacion_media then 
+            return "no has sabido responder a la pregunta de la nota media"
+        )
+        (case Nivel_abstraccion then 
+            return "no has sabido responder a la pregunta del nivel de abstraccion"
+        )
+        (case Matematicas then 
+            return "no has sabido responder a la pregunta del gusto a las matemeticas"
+        )
+        (case Hardware then 
+            return "no has sabido responder a la pregunta del gusto al hardware"
+        )
+        (case Programar then 
+            return "no has sabido responder a la pregunta del gusto a programar"
+        )
+        (case Asignaturas then 
+            return "no has sabido responder a la pregunta de las asignaturas preferidas"
+        )
+        (case Lugar_trabajo then 
+            return "no has sabido responder a la pregunta del lugar de trabajo"
+        )
+        (case Trabajador then 
+            return "no has sabido responder a la pregunta de tu esfuerzo en el trabajo"
+        )
+    )
+)
+
+
 ;;;;;;;;;;;;;;;; Preguntas
 
 ;; En el caso de ser la primera pregunta y ser sobre una característica de la que se
 ;; obtiene un valor continuo
 
 (defrule pregunta_inicio_continuo
-?X <- (Pregunta ?caracteristica)
-(not (AnteriorPregunta ?nombre))
+?X <- (Anterior Ninguno Pregunta ?caracteristica)
 (Frase Inicio $?frases)
 (FrasePregunta ?caracteristica ?restoFrase)
 (RangoNumerico ?caracteristica ?min ?max)
@@ -799,7 +831,7 @@
 (printout t ?frase)
 (bind ?mensaje (read))
 (bind ?valor (obtenerValorDiscretoCarac ?caracteristica ?min ?max ?mensaje))
-(assert (Respuesta ?caracteristica ?valor))
+(assert (Anterior Ninguno Respuesta ?caracteristica ?valor))
 (retract ?X)
 )
 
@@ -807,8 +839,7 @@
 ;; obtiene un valor discreto
 
 (defrule pregunta_inicio_discreto
-?X <- (Pregunta ?caracteristica)
-(not (AnteriorPregunta ?nombre))
+?X <- (Anterior Ninguno Pregunta ?caracteristica)
 (Frase Inicio $?frases)
 (FrasePregunta ?caracteristica ?restoFrase)
 (not (RangoNumerico ?caracteristica ? ?))
@@ -818,19 +849,41 @@
 (printout t ?frase)
 (bind ?mensaje (readline))
 (bind ?valor (perteneceAlRangoDiscreto ?mensaje ?rango))
-(assert (Respuesta ?caracteristica ?valor))
+(assert (Anterior Ninguno Respuesta ?caracteristica ?valor))
 (retract ?X)
 )
 
 ;; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
 ;; obtiene un valor continuo
 
-(defrule pregunta_resto_continuo
-?X <- (Pregunta ?caracteristica)
+;; Hay dos reglas, una para manejar los casos en que la pregunta del requisito de la pregunta
+;; que vamos a realizar, fue respondida con NSNC
+
+(defrule pregunta_resto_continuo_nil
+?X <- (Anterior ?nombre Pregunta ?caracteristica)
+(test (neq ?nombre Ninguno))
 (RangoNumerico ?carac ?min ?max)
 (test (eq ?caracteristica ?carac))
-(AnteriorPregunta ?nombre)
 (Caracteristica ?nombre ?valor)
+(test (eq ?valor "nil"))
+(Frase Resto $?frases)
+(FrasePregunta ?caracteristica ?restoFrase)
+=>
+(bind ?frase (obtenerFrasePreguntaResto (obtener_nombre_caracteristica ?nombre) ?restoFrase ?frases))
+(printout t ?frase)
+(bind ?mensaje (read))
+(bind ?valor (obtenerValorDiscretoCarac ?caracteristica ?min ?max ?mensaje))
+(assert (Anterior ?nombre Respuesta ?caracteristica ?valor))
+(retract ?X)
+)
+
+(defrule pregunta_resto_continuo
+?X <- (Anterior ?nombre Pregunta ?caracteristica)
+(test (neq ?nombre Ninguno))
+(RangoNumerico ?carac ?min ?max)
+(test (eq ?caracteristica ?carac))
+(Caracteristica ?nombre ?valor)
+(test (neq ?valor "nil"))
 (Frase Resto $?frases)
 (Frase ?nombre ?valor ?restoFrase1)
 (FrasePregunta ?caracteristica ?restoFrase2)
@@ -839,17 +892,39 @@
 (printout t ?frase)
 (bind ?mensaje (read))
 (bind ?valor (obtenerValorDiscretoCarac ?caracteristica ?min ?max ?mensaje))
-(assert (Respuesta ?caracteristica ?valor))
+(assert (Anterior ?nombre Respuesta ?caracteristica ?valor))
 (retract ?X)
 )
 
 ;; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
 ;; obtiene un valor discreto
 
-(defrule pregunta_resto_discreto
-?X <- (Pregunta ?caracteristica)
-(AnteriorPregunta ?nombre)
+;; Hay dos reglas, una para manejar los casos en que la pregunta del requisito de la pregunta
+;; que vamos a realizar, fue respondida con NSNC
+
+(defrule pregunta_resto_discreto_nil
+?X <- (Anterior ?nombre Pregunta ?caracteristica)
+(test (neq ?nombre Ninguno))
 (Caracteristica ?nombre ?valor)
+(test (eq ?valor "nil"))
+(Frase Resto $?frases)
+(FrasePregunta ?caracteristica ?restoFrase)
+(not (RangoNumerico ?caracteristica ? ?))
+(Rango ?caracteristica $?rango)
+=>
+(bind ?frase (obtenerFrasePreguntaResto (obtener_nombre_caracteristica ?nombre) ?restoFrase ?frases))
+(printout t ?frase)
+(bind ?mensaje (readline))
+(bind ?valor (perteneceAlRangoDiscreto ?mensaje ?rango))
+(assert (Anterior ?nombre Respuesta ?caracteristica ?valor))
+(retract ?X)
+)
+
+(defrule pregunta_resto_discreto
+?X <- (Anterior ?nombre Pregunta ?caracteristica)
+(test (neq ?nombre Ninguno))
+(Caracteristica ?nombre ?valor)
+(test (neq ?valor "nil"))
 (Frase Resto $?frases)
 (Frase ?nombre ?valor ?restoFrase1)
 (FrasePregunta ?caracteristica ?restoFrase2)
@@ -860,7 +935,7 @@
 (printout t ?frase)
 (bind ?mensaje (readline))
 (bind ?valor (perteneceAlRangoDiscreto ?mensaje ?rango))
-(assert (Respuesta ?caracteristica ?valor))
+(assert (Anterior ?nombre Respuesta ?caracteristica ?valor))
 (retract ?X)
 )
 
@@ -873,26 +948,10 @@
 
 (defrule volver_a_preguntar
 (declare (salience 9999))
-?X <- (Respuesta ?caracteristica ?valor)
+?X <- (Anterior ?nombre Respuesta ?caracteristica ?valor)
 (test (eq ?valor "Repetir"))
 =>
-(assert (Pregunta ?caracteristica))
-(retract ?X)
-)
-
-
-;;;;;;;;;;;;;;;; Regla para seguir con la obtención de las siguientes preguntas
-
-;; Se sigue con el proceso si el valor obtenido es NSNC o está en el rango de 
-;; la característica.
-
-(defrule gestionar_respuesta
-(declare (salience 9999))
-?X <- (Respuesta ?caracteristica ?valor)
-(test (neq ?valor "Repetir"))
-=>
-(assert (Caracteristica ?caracteristica ?valor))
-(assert (ObtenerSiguientesPreguntas ?caracteristica))
+(assert (Anterior ?nombre Pregunta ?caracteristica))
 (retract ?X)
 )
 
@@ -904,16 +963,50 @@
 )
 
 
+;;;;;;;;;;;;;;;; Regla para seguir con la obtención de las siguientes preguntas
+
+;; Se sigue con el proceso si el valor obtenido es NSNC o está en el rango de 
+;; la característica.
+
+(defrule gestionar_respuesta
+(declare (salience 9999))
+?X <- (Anterior ?nombre Respuesta ?caracteristica ?valor)
+(test (neq ?valor "Repetir"))
+=>
+(assert (Caracteristica ?caracteristica ?valor))
+(assert (Anterior ?nombre ObtenerSiguientesPreguntas ?caracteristica))
+(retract ?X)
+)
+
+
 ;;;;;;;;;;;;;;;; Regla para obtener la siguientes preguntas después de haber realizado la primera pregunta
 
-;; Se crea un hecho (Pregunta ?caracteristica) por cada elemento de la lista de siguientes preguntas,
-;; teniendo en cuenta la última pregunta realizada y el valor obtenido. Además se actualiza el hecho
-;; (AnteriorPregunta ?caracteristica) con la característica sobre la que se acaba de realizar la pregunta.
+;; Se crea un hecho (Anterior ?anterior Pregunta ?caracteristica) por cada elemento de la lista de siguientes preguntas,
+;; teniendo en cuenta la última pregunta realizada y el valor obtenido. Cada uno de estos hechos representa una línea de
+;; exploración del grafo que forman los distintos valores de las preguntas.
+
+;; Hay dos reglas, una para el caso en que el valor de la caracterñistica sea nil y otro en el que no.
+
+(defrule siguientes_preguntas_primero_nil
+(declare (salience 2))
+(Anterior Ninguno ObtenerSiguientesPreguntas ?caracteristica)
+(Caracteristica ?caracteristica ?valor)
+(test (eq ?valor "nil"))
+(SiguientePregunta (Caracteristica ?caracteristica) (Valor ?) (Requisitos $?requisitos) (Siguientes $?siguientes))
+=>
+(bind ?i 1)
+(bind ?tam (length$ ?siguientes))
+(while (<= ?i ?tam) do
+    (bind ?aux (obtener_elem_lista ?i ?siguientes))
+    (assert (Anterior ?caracteristica Pregunta ?aux))
+    (bind ?i (+ ?i 1))
+)
+)
 
 (defrule siguientes_preguntas_primero
-?X <- (ObtenerSiguientesPreguntas ?caracteristica)
+?X <- (Anterior Ninguno ObtenerSiguientesPreguntas ?caracteristica)
 (Caracteristica ?caracteristica ?valor)
-(not (AnteriorPregunta ?))
+(test (neq ?valor "nil"))
 (SiguientePregunta (Caracteristica ?caracteristica) (Valor ?valor) (Requisitos $?requisitos) (Siguientes $?siguientes))
 =>
 (retract ?X)
@@ -921,39 +1014,68 @@
 (bind ?tam (length$ ?siguientes))
 (while (<= ?i ?tam) do
     (bind ?aux (obtener_elem_lista ?i ?siguientes))
-    (assert (Pregunta ?aux))
+    (assert (Anterior ?caracteristica Pregunta ?aux))
     (bind ?i (+ ?i 1))
 )
-
-(assert (AnteriorPregunta ?caracteristica))
 )
 
 
 ;;;;;;;;;;;;;;;; Regla para obtener la siguientes preguntas después de haber realizado una pregunta que no sea la primera
 
-;; Se crea un hecho (Pregunta ?caracteristica) por cada elemento de la lista de siguientes preguntas,
-;; teniendo en cuenta la última pregunta realizada y el valor obtenido. Además se actualiza el hecho
-;; (AnteriorPregunta ?caracteristica) con la característica sobre la que se acaba de realizar la pregunta.
+;; Se crea un hecho (Anterior ?anterior Pregunta ?caracteristica) por cada elemento de la lista de siguientes preguntas,
+;; teniendo en cuenta la última pregunta realizada y el valor obtenido. Cada uno de estos hechos representa una línea de
+;; exploración del grafo que forman los distintos valores de las preguntas.
 
-(defrule siguientes_preguntas_resto
-?X <- (ObtenerSiguientesPreguntas ?caracteristica)
+;; Hay dos reglas, una para el caso en que el valor de la caracterñistica sea nil y otro en el que no.
+
+(defrule siguientes_preguntas_resto_nil
+(declare (salience 2))
+(Anterior ?anterior ObtenerSiguientesPreguntas ?caracteristica)
+(test (neq ?anterior Ninguno))
 (Caracteristica ?caracteristica ?valor)
-?Y <- (AnteriorPregunta ?anterior)
-(SiguientePregunta (Caracteristica ?caracteristica) (Valor ?valor) (Requisitos $?requisitos) (Siguientes $?siguientes))
+(test (eq ?valor "nil"))
+(SiguientePregunta (Caracteristica ?caracteristica) (Valor ?) (Requisitos $?requisitos) (Siguientes $?siguientes))
 (test (member ?anterior ?requisitos))
 =>
-(retract ?X ?Y)
 (bind ?i 1)
 (bind ?tam (length$ ?siguientes))
 (while (<= ?i ?tam) do
     (bind ?aux (obtener_elem_lista ?i ?siguientes))
-    (assert (Pregunta ?aux))
+    (assert (Anterior ?caracteristica Pregunta ?aux))
     (bind ?i (+ ?i 1))
 )
-
-(assert (AnteriorPregunta ?caracteristica))
 )
 
+(defrule siguientes_preguntas_resto
+?X <- (Anterior ?anterior ObtenerSiguientesPreguntas ?caracteristica)
+(test (neq ?anterior Ninguno))
+(Caracteristica ?caracteristica ?valor)
+(test (neq ?valor "nil"))
+(SiguientePregunta (Caracteristica ?caracteristica) (Valor ?valor) (Requisitos $?requisitos) (Siguientes $?siguientes))
+(test (member ?anterior ?requisitos))
+=>
+(retract ?X)
+(bind ?i 1)
+(bind ?tam (length$ ?siguientes))
+(while (<= ?i ?tam) do
+    (bind ?aux (obtener_elem_lista ?i ?siguientes))
+    (assert (Anterior ?caracteristica Pregunta ?aux))
+    (bind ?i (+ ?i 1))
+)
+)
+
+
+;;;;;;;;;;;;;;;; Regla para eliminar el hecho que indica la obtención de las siguientes preguntas. Sólo
+;;;;;;;;;;;;;;;; en el caso de que el valor de la característica fuese nil.
+
+(defrule eliminar_siguientes_preguntas
+(declare (salience 1))
+?X <- (Anterior ? ObtenerSiguientesPreguntas ?caracteristica)
+(Caracteristica ?caracteristica ?valor)
+(test (eq ?valor "nil"))
+=>
+(retract ?X)
+)
 
 ;;;;;;;;;;;;;;;; Regla para aceptar una sugerencia
 
@@ -993,29 +1115,43 @@
 )
 
 
+;;;;;;;;;;;;;;;; Regla para indicar la llegada al final de la deduccion
+
+(defrule llegar_al_final
+(declare (salience -1))
+(not (Anterior ? Pregunta ?))
+=>
+(assert (Final))
+)
+
+
 ;;;;;;;;;;;;;;;; Regla para crear la lista de motivos por los que ha sido
 ;;;;;;;;;;;;;;;; aceptada una sugerencia
 
-(defrule mostrar_sugerencia
+(defrule crear_lista_motivos
+(declare (salience 1))
 (Elegido ?id)
+(Sugerencia ?id Rama ?rama)
+(Final)
 =>
-(assert (Motivos ?id))
+(assert (Motivos ?id ?rama))
 )
 
 
 ;;;;;;;;;;;;;;;; Regla para añadir los motivos a la lista de la sugerencia aceptada
 
 (defrule añadir_motivo_sugerencia
-(declare (salience 1))
-?X <- (Motivos ?id $?motivos)
+?X <- (Motivos ?id ?rama $?motivos)
 ?Y <- (Sugerencia ?id ?nombre ?valor)
 (test (neq ?nombre Rama))
 (test (neq ?nombre Contador))
 (test (neq ?nombre Necesario))
+(Caracteristica ?nombre ?valorCarac)
+(test (neq ?valorCarac "nil"))
 (Frase ?nombre ?valor ?frase)
 =>
 (retract ?X ?Y)
-(assert (Motivos ?id ?motivos ?frase))
+(assert (Motivos ?id ?rama ?motivos ?frase))
 )
 
 
@@ -1040,72 +1176,57 @@
     return ?mensaje
 )
 
-;;;;;;;;;;;;;;;; Regla para crea el mensaje de aceptación de una sugerencia
 
-;; Esta regla se lanza cuando ya se han añadido todos los motivos de la
-;; aceptación de la sugerencia
+;;;;;;;;;;;;;;;; Regla para eliminar lista de motivos con la misma rama
 
-(defrule mostrar_mensaje_sugerencia
-?X <- (Motivos ?id $?motivos)
-(Sugerencia ?id Rama ?rama)
+(defrule eliminar_motivos_repetidos
+(declare (salience -1))
+?X <- (Motivos ?id1 ?rama $?motivos1)
+(Motivos ?id2 ?rama $?motivos2)
+(test (neq ?id1 ?id2))
 =>
 (retract ?X)
-(bind ?mensaje (crear_mensaje_sugerencia ?rama ?motivos))
-(assert (SugeAceptada ?mensaje))
 )
 
 
-;;;;;;;;;;;;;;;; Regla para mostrar el mensaje de las sugerencias aceptadas
-
-;; Esta regla sólo se lanza si se ha terminado de deducir.
+;;;;;;;;;;;;;;;; Regla para crear y mostrar el mensaje de las sugerencias aceptadas
 
 (defrule terminar_deducion
-(declare (salience -1))
-(not (Pregunta ?))
-(SugeAceptada ?mensaje)
+(declare (salience -2))
+(Motivos ?id ?rama $?motivos)
 =>
+(bind ?mensaje (crear_mensaje_sugerencia ?rama ?motivos))
 (printout t ?mensaje crlf)
 )
 
 
-;;;;;;;;;;;;;;;; Regla para retractar una pregunta realizada anteriormente
+;;;;;;;;;;;;;;;; Regla para evitar mostrar la pregunta y saltar directamente a la obtención
+;;;;;;;;;;;;;;;; de las siguientes preguntas
 
-;; Si ya se ha realizado una pregunta sobre una característica, no se vuelve a realizar.
+;; Esto sucede en el caso de que se vaya a realizar una pregunta de la que ya se ha obtenido
+;; su valor anteriormente, por lo que sólo nos interesa seguir con la deducción con la siguientes
+;; preguntas según el valor de la característica.
 
-(defrule retractar_pregunta
+(defrule saltar_pregunta
 (declare (salience 9999))
-?X <- (Pregunta ?nombre)
-(Caracteristica ?nombre ?)
+?X <- (Anterior ?anterior Pregunta ?nombre)
+(Caracteristica ?nombre ?valor)
 =>
 (retract ?X)
+(assert (Anterior ?anterior ObtenerSiguientesPreguntas ?nombre))
 )
 
 
 ;;;;;;;;;;;;;;;; Regla para retractar una rama
 
-;; Una rama se retracta cuando no hay sugerencia de esa rama, por lo que
-;; se crea una lista de motivos por lo que ha sido rechazada la sugerencia de la rama.
-
-(defrule retractar_rama
-(declare (salience 9999))
-(Rechazo ?rama $?)
-(not (Sugerencia ? Rama ?rama))
-=>
-(assert (MotivosRechazo ?rama))
-)
-
-;; Esta regla también retracta una regla, pero en este caso al haber terminado
-;; la deducción, no se tiene que esperar a que no hay sugerencias de la rama
-;; rechazada. En este caso también se crea una lista de motivos por los que han 
-;; sido rechazadas las sugerencia de la rama retractada. 
+;; Se crea una lista por cada rama que haya tenido un rechazo
+;; en alguna de sus sugerencias.
 
 (defrule retractar_rama_al_terminar
-(declare (salience -1))
+(declare (salience 1))
 (Rechazo ?rama $?)
-(Elegido ?id)
-(Sugerencia ?id Rama ?ramaSuge)
-(test (neq ?rama ?ramaSuge))
-(not (Pregunta ?))
+(Final)
+(not (MotivosRechazo ?rama $?))
 =>
 (assert (MotivosRechazo ?rama))
 )
@@ -1144,13 +1265,24 @@
 )
 
 
+;;;;;;;;;;;;;;;; Regla para eliminar la lista de motivos de rechazo de las
+;;;;;;;;;;;;;;;; ramas que han sido aceptadas
+
+(defrule eliminar_motivos_rechazo
+(declare (salience -2))
+?X <- (MotivosRechazo ?rama $?motivos1)
+(Motivos ?id ?rama $?motivos2)
+=>
+(retract ?X)
+)
+
+
 ;;;;;;;;;;;;;;;; Regla para crear y mostrar el mensaje de las ramas rechazadas
 
 (defrule mostrar_mensaje_rechazo_rama
-?X <- (MotivosRechazo ?rama $?motivos)
-(not (Rechazo ?rama ? ?))
+(declare (salience -3))
+(MotivosRechazo ?rama $?motivos)
 =>
-(retract ?X)
 (bind ?mensaje (crear_mensaje_rechazo_rama ?rama ?motivos))
 (printout t ?mensaje crlf)
 )
