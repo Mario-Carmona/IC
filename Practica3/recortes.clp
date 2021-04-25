@@ -1,3 +1,48 @@
+(defrule obtener_valor_caracteristica
+(declare (salience 2))
+(ValorCaracteristica ?caracteristica)
+(Rango ?caracteristica ?valor)
+(Respuesta ?caracteristica ?mensaje)
+=>
+(obtenerValorCaracNoNumerico ?caracteristica ?valor ?mensaje)
+)
+
+(defrule eliminar_obtener_valor_carac
+(declare (salience 1))
+?X <- (Respuesta ?caracteristica ?mensaje)
+?Y <- (ValorCaracteristica ?caracteristica)
+=>
+(retract ?X ?Y)
+(assert (ObtenerSiguientesPreguntas ?caracteristica))
+)
+
+
+
+
+
+(deffunction obtenerValorCaracNoNumerico (?caracteristica ?valor $?mensaje)
+    (bind ?valor nil)
+    (bind ?tam (length$ ?mensaje))
+    (printout t ?tam)
+    (if (neq ?tam 0)
+    then
+        (progn$ (?palabra ?mensaje)
+            (bind ?salida (perteneceAlRango ?palabra ?valor))
+            (if (neq ?salida nil)
+            then
+                (bind ?valor ?salida)
+            )
+        )
+    )
+    
+    (assert (Caracteristica ?caracteristica ?valor))
+)
+
+
+
+
+
+
 
 (deffunction obtener_frase_rechazo (?caracteristica ?valor)
     (Frase ?caracteristica ?valor ?frase)
