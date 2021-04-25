@@ -909,7 +909,6 @@
 ;; (AnteriorPregunta ?caracteristica) con la característica sobre la que se acaba de realizar la pregunta.
 
 (defrule siguientes_preguntas_primero
-(declare (salience 1))
 ?X <- (ObtenerSiguientesPreguntas ?caracteristica)
 (Caracteristica ?caracteristica ?valor)
 (not (AnteriorPregunta ?))
@@ -935,7 +934,6 @@
 ;; (AnteriorPregunta ?caracteristica) con la característica sobre la que se acaba de realizar la pregunta.
 
 (defrule siguientes_preguntas_resto
-(declare (salience 1))
 ?X <- (ObtenerSiguientesPreguntas ?caracteristica)
 (Caracteristica ?caracteristica ?valor)
 ?Y <- (AnteriorPregunta ?anterior)
@@ -1047,10 +1045,9 @@
 
 (defrule mostrar_mensaje_sugerencia
 ?X <- (Motivos ?id $?motivos)
-?Y <- (Elegido ?id)
 (Sugerencia ?id Rama ?rama)
 =>
-(retract ?X ?Y)
+(retract ?X)
 (bind ?mensaje (crear_mensaje_sugerencia ?rama ?motivos))
 (assert (SugeAceptada ?mensaje))
 )
@@ -1103,6 +1100,9 @@
 (defrule retractar_rama_al_terminar
 (declare (salience -1))
 (Rechazo ?rama $?)
+(Elegido ?id)
+(Sugerencia ?id Rama ?ramaSuge)
+(test (neq ?rama ?ramaSuge))
 (not (Pregunta ?))
 =>
 (assert (MotivosRechazo ?rama))
