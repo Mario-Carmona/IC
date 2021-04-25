@@ -983,7 +983,7 @@
 
 ;; Se crea un hecho (Anterior ?anterior Pregunta ?caracteristica) por cada elemento de la lista de siguientes preguntas,
 ;; teniendo en cuenta la última pregunta realizada y el valor obtenido. Cada uno de estos hechos representa una línea de
-;; exploración del grafo que forman los distintos valores de las preguntas.
+;; exploración del árbol que forman los distintos valores de las preguntas.
 
 ;; Hay dos reglas, una para el caso en que el valor de la caracterñistica sea nil y otro en el que no.
 
