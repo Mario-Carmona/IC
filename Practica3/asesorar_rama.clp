@@ -487,6 +487,8 @@
 ;; realizan después de haber realizar la pregunta de la característica que se indica en el hecho y haber obtenido
 ;; en el valor indicado en hecho SiguientePregunta.
 
+;; Estos hechos se utilizan para realizar sólo las preguntas necesarias.
+
 (deftemplate SiguientePregunta
     (field Caracteristica (default ?NONE))
     (field Valor (default ?NONE))
