@@ -343,7 +343,7 @@
 (defrule ModuloPregunta::pregunta_resto_discreto_nil
 (Anterior ?nombre)
 (test (neq ?nombre Ninguno))
-?X <- (Pregunta caracteristica ?caracteristica)
+?X <- (Pregunta ?caracteristica)
 ?Y <- (Ultimo ?)
 (Respuesta (caracteristica ?nombre)(valor "nil"))
 (Frase Resto $?frases)
@@ -392,10 +392,13 @@
 (defrule ModuloPregunta::volver_a_preguntar
 (declare (salience 9999))
 ?X <- (Respuesta (caracteristica ?caracteristica)(valor ?valor))
+?Y <- (Ultimo ?ultimo)
 (test (eq ?valor "Repetir"))
+(Anterior ?anterior)
 =>
 (assert (Pregunta ?caracteristica))
-(retract ?X)
+(assert (Ultimo ?anterior))
+(retract ?X ?Y)
 )
 
 (defrule gestionarRespuesta
@@ -955,6 +958,15 @@
 
 ;; El incremento se hace en otra regla, para no entrar en un bucle infinito
 
+(defrule ModuloSBCMario::incremento_contador_nil
+(declare (salience 1))
+?X <- (IncreContador ?id)
+?Y <- (Sugerencia ?id Contador ?num)
+=>
+(retract ?X ?Y)
+(assert (Sugerencia ?id Contador (+ ?num 1)))
+)
+
 (defrule ModuloSBCMario::incremento_contador
 (declare (salience 1))
 ?X <- (IncreContador ?id ?caracteristica ?valor)
@@ -1247,33 +1259,38 @@
 
 ;; Si se recomienda la misma rama, se unifica la respuesta y los motivos
 (defrule ModuloRecomendacion::coincideRecomendacion
-    (RecomendacionSergio (rama ?r)(motivo ?motivoS))
-    (RecomendacionMario (rama ?r)(motivo ?motivoM))
+(declare (salience 1))
+    ?X <- (RecomendacionSergio (rama ?r)(motivo ?motivoS))
+    ?Y <- (RecomendacionMario (rama ?r)(motivo ?motivoM))
     (Rama ?r ?rama)
 =>
-    (printout t "El sistema te recomienda " ?rama " porque " ?motivoM crlf)
+    (bind ?mensaje (str-cat "El sistema te recomienda " ?rama " porque " ?motivoM))
+    (assert (Recomendacion ?mensaje))
+    (retract ?X ?Y)
 )
 
 ;; Si las ramas no coinciden, cada subsistema da su propia respuesta
 (defrule ModuloRecomendacion::recomendacionSergio
     (RecomendacionSergio (rama ?r)(motivo ?motivo))
-    (RecomendacionMario (rama ?s)(motivo ?))
-    (test (neq ?r ?s)) ; comprueba que las recomendaciones son distintas
     (Rama ?r ?rama)
 =>
-    (printout t "Sergio recomienda " ?rama  " porque " ?motivo crlf)
+    (bind ?mensaje (str-cat "Sergio recomienda " ?rama  " porque " ?motivo))
+    (assert (Recomendacion ?mensaje))
 )
 
 (defrule ModuloRecomendacion::recomendacionMario
     (RecomendacionMario (rama ?r)(motivo ?motivo))
-    (RecomendacionSergio (rama ?s)(motivo ?))
-    (test (neq ?r ?s)) ; comprueba que las recomendaciones son distintas
     (Rama ?r ?rama)
 =>
-    (printout t "Mario recomienda " ?rama " porque " ?motivo crlf)
+    (bind ?mensaje (str-cat "Mario recomienda " ?rama " porque " ?motivo))
+    (assert (Recomendacion ?mensaje))
 )
 
-
+(defrule ModuloRecomendacion::recomendacion
+    (Recomendacion ?mensaje)
+=>
+    (printout t ?mensaje crlf)
+)
 
 
 
