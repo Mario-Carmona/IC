@@ -1,0 +1,10 @@
+Razonamiento probabilistico:
+
+- Añadir nuevos efectos es muy fácil, pero no es tan fácil añadir nuevas influencias, habría que cambiar más código
+
+si → indica que es una probabilidad condiccional
+
+SI → es un valor de la variable paludismo
+
+
+Para hacer el ejercicio hay que añadir el efecto test, y añadir las probabilidades condiccionadas respecto de este nuevo efecto
