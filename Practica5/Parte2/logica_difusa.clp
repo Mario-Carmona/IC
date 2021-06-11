@@ -7,7 +7,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; FUNCIONES NECESARIAS  ;;;;;;;;;;;;;;;;;;;;;;;
 
-; Membership es una funcion que calcul el el grado de pertenencia de value al conjunto difuso 
+; Membership es una funcion que calcula el grado de pertenencia de value al conjunto difuso 
 ;trapezoidal (a b c d). 
 (deffunction membership (?value ?a ?b ?c ?d)
 (if  (< ?value ?a) then (bind ?rv 0)
