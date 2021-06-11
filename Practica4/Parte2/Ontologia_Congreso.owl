@@ -1,0 +1,306 @@
+<?xml version="1.0"?>
+<Ontology xmlns="http://www.w3.org/2002/07/owl#"
+     xml:base="http://www.semanticweb.org/macarse/ontologies/2021/5/Practica4"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     ontologyIRI="http://www.semanticweb.org/macarse/ontologies/2021/5/Practica4">
+    <Prefix name="" IRI="http://www.semanticweb.org/macarse/ontologies/2021/5/Practica4"/>
+    <Prefix name="owl" IRI="http://www.w3.org/2002/07/owl#"/>
+    <Prefix name="rdf" IRI="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
+    <Prefix name="xml" IRI="http://www.w3.org/XML/1998/namespace"/>
+    <Prefix name="xsd" IRI="http://www.w3.org/2001/XMLSchema#"/>
+    <Prefix name="rdfs" IRI="http://www.w3.org/2000/01/rdf-schema#"/>
+    <Declaration>
+        <Class IRI="#ArtículoInscrito"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Autor"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#BecarioInscrito"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#ConferenciaInvitada"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Descriptor"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Inscrito"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Presentación"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Póster"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Sesión"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#P-Autor"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#P-Sesion"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#P-descriptor"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#contienePresentacion"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#esAutorDe"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#pertePresentacion"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#CantidadInscrito"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#Centro"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#ConfirmaPresentacion"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#DescripcionDescriptor"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#DiaSesion"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#HoraSesion"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#NombreAutor"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#NombreInscrito"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#NumArticulosAutor"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#ReferenciaPresentacion"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#TarjetaInscrito"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#TipoSesion"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#TituloPresentacion"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#UniversidadBecario"/>
+    </Declaration>
+    <SubClassOf>
+        <Class IRI="#ArtículoInscrito"/>
+        <Class IRI="#Presentación"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#BecarioInscrito"/>
+        <Class IRI="#Inscrito"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#ConferenciaInvitada"/>
+        <Class IRI="#Presentación"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#Póster"/>
+        <Class IRI="#Presentación"/>
+    </SubClassOf>
+    <InverseObjectProperties>
+        <ObjectProperty IRI="#P-Autor"/>
+        <ObjectProperty IRI="#esAutorDe"/>
+    </InverseObjectProperties>
+    <InverseObjectProperties>
+        <ObjectProperty IRI="#P-Sesion"/>
+        <ObjectProperty IRI="#contienePresentacion"/>
+    </InverseObjectProperties>
+    <InverseObjectProperties>
+        <ObjectProperty IRI="#P-descriptor"/>
+        <ObjectProperty IRI="#pertePresentacion"/>
+    </InverseObjectProperties>
+    <FunctionalObjectProperty>
+        <ObjectProperty IRI="#P-Sesion"/>
+    </FunctionalObjectProperty>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#P-Autor"/>
+        <Class IRI="#Presentación"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#P-Sesion"/>
+        <Class IRI="#Presentación"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#P-descriptor"/>
+        <Class IRI="#Presentación"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#P-Autor"/>
+        <Class IRI="#Autor"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#P-Sesion"/>
+        <Class IRI="#Sesión"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#P-descriptor"/>
+        <Class IRI="#Descriptor"/>
+    </ObjectPropertyRange>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#CantidadInscrito"/>
+    </FunctionalDataProperty>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#Centro"/>
+    </FunctionalDataProperty>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#ConfirmaPresentacion"/>
+    </FunctionalDataProperty>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#DescripcionDescriptor"/>
+    </FunctionalDataProperty>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#DiaSesion"/>
+    </FunctionalDataProperty>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#HoraSesion"/>
+    </FunctionalDataProperty>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#NombreAutor"/>
+    </FunctionalDataProperty>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#NombreInscrito"/>
+    </FunctionalDataProperty>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#NumArticulosAutor"/>
+    </FunctionalDataProperty>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#TipoSesion"/>
+    </FunctionalDataProperty>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#TituloPresentacion"/>
+    </FunctionalDataProperty>
+    <FunctionalDataProperty>
+        <DataProperty IRI="#UniversidadBecario"/>
+    </FunctionalDataProperty>
+    <DataPropertyDomain>
+        <DataProperty IRI="#CantidadInscrito"/>
+        <Class IRI="#Inscrito"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#Centro"/>
+        <Class IRI="#Autor"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#ConfirmaPresentacion"/>
+        <Class IRI="#Presentación"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#DescripcionDescriptor"/>
+        <Class IRI="#Descriptor"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#DiaSesion"/>
+        <Class IRI="#Sesión"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#HoraSesion"/>
+        <Class IRI="#Sesión"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#NombreAutor"/>
+        <Class IRI="#Autor"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#NombreInscrito"/>
+        <Class IRI="#Inscrito"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#NumArticulosAutor"/>
+        <Class IRI="#Autor"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#ReferenciaPresentacion"/>
+        <Class IRI="#Presentación"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#TarjetaInscrito"/>
+        <Class IRI="#Inscrito"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#TipoSesion"/>
+        <Class IRI="#Sesión"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#TituloPresentacion"/>
+        <Class IRI="#Presentación"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#UniversidadBecario"/>
+        <Class IRI="#BecarioInscrito"/>
+    </DataPropertyDomain>
+    <DataPropertyRange>
+        <DataProperty IRI="#CantidadInscrito"/>
+        <Datatype abbreviatedIRI="xsd:nonNegativeInteger"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#Centro"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#ConfirmaPresentacion"/>
+        <Datatype abbreviatedIRI="xsd:boolean"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#DescripcionDescriptor"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#DiaSesion"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#HoraSesion"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#NombreAutor"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#NombreInscrito"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#NumArticulosAutor"/>
+        <Datatype abbreviatedIRI="xsd:nonNegativeInteger"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#ReferenciaPresentacion"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#TarjetaInscrito"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#TituloPresentacion"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#UniversidadBecario"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
+</Ontology>
+
+
+
+<!-- Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi -->
+
