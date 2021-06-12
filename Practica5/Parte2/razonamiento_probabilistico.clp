@@ -6,48 +6,56 @@
 
 
 (deffacts relaciones_causa_efecto
-(influye  zona_origen Paludismo)  ; zona de origen influye en la probabilidad de Padulismo
-(influye  inmunidad Paludismo)    ; inminidad influye en la probabilidad de Padulismo
-(efecto gota_gruesa Paludismo)    ; gota_gruesa es un efecto o síntoma común de Padulismo
-(efecto fiebre Paludismo)         ; fiebre es un efecto o síntoma común de Padulismo
+(influye  zona_origen Covid)  ; zona de origen influye en la probabilidad de Covid
+(influye  vacunada Covid)    ; inminidad influye en la probabilidad de Covid
+(efecto tos Covid)            ; tos es un efecto o síntoma común de Covid
+(efecto fiebre Covid)         ; fiebre es un efecto o síntoma común de Covid
+(efecto test_covid Covid)     ; test es un efecto común de Covid
 )
 
 (deffacts probabilidad_variables_que_influyen
-(prob zona_origen alto_riesgo 0.1)
-(prob zona_origen medio_riesgo 0.1)
+(prob zona_origen alto_riesgo 0.08)
+(prob zona_origen medio_riesgo 0.12)
 (prob zona_origen bajo_riesgo 0.8)
-(prob inmunidad mayor 0.6)
-(prob inmunidad menor 0.4)
+(prob vacunada si 0.4)
+(prob vacunada no 0.6)
 )
 
 (deffacts distribucion_segun_valores_variables_que_influyen
-(probcond2 Paludismo SI zona_origen alto_riesgo inmunidad mayor 0.015)
-(probcond2 Paludismo SI zona_origen alto_riesgo inmunidad menor 0.022)
-(probcond2 Paludismo SI zona_origen medio_riesgo inmunidad mayor 0.003)
-(probcond2 Paludismo SI zona_origen medio_riesgo inmunidad menor 0.012)
-(probcond2 Paludismo SI zona_origen bajo_riesgo inmunidad mayor 0.0003)
-(probcond2 Paludismo SI zona_origen bajo_riesgo inmunidad menor 0.0008)
+(probcond2 Covid SI zona_origen alto_riesgo vacunada si 0.008)
+(probcond2 Covid SI zona_origen alto_riesgo vacunada no 0.07)
+(probcond2 Covid SI zona_origen medio_riesgo vacunada si 0.003)
+(probcond2 Covid SI zona_origen medio_riesgo vacunada no 0.02)
+(probcond2 Covid SI zona_origen bajo_riesgo vacunada si 0.0005)
+(probcond2 Covid SI zona_origen bajo_riesgo vacunada no 0.003)
 )
 
 (deffacts probabilidad_efectos
-(probcond gota_gruesa si Paludismo SI 0.992)
-(probcond gota_gruesa si Paludismo NO 0.006)
-(probcond fiebre si Paludismo SI 0.98)
-(probcond fiebre si Paludismo NO 0.017)
+(probcond tos si Covid SI 0.85)
+(probcond tos si Covid NO 0.05)
+(probcond fiebre alta Covid SI 0.15)
+(probcond fiebre alta Covid NO 0.000005)
+(probcond fiebre moderada Covid SI 0.34)
+(probcond fiebre moderada Covid NO 0.00007)
+(probcond fiebre sin_fiebre Covid SI 0.75)
+(probcond fiebre sin_fiebre Covid NO 0.69)
+(probcond test_covid si Covid SI 0.9)
+(probcond test_covid si Covid NO 0.01)
 )
+
 ; Inicializamos valores para calculos a partir de probcond2
 (deffacts inicializacion_probabilidades
-(probconj2 Paludismo SI zona_origen alto_riesgo 0)
-(probconj2 Paludismo SI zona_origen medio_riesgo 0)
-(probconj2 Paludismo SI zona_origen bajo_riesgo 0)
-(probconj2 Paludismo SI inmunidad mayor 0)
-(probconj2 Paludismo SI inmunidad menor 0)
-(prob Paludismo SI 0)
+(probconj2 Covid SI zona_origen alto_riesgo 0)
+(probconj2 Covid SI zona_origen medio_riesgo 0)
+(probconj2 Covid SI zona_origen bajo_riesgo 0)
+(probconj2 Covid SI vacunada si 0)
+(probconj2 Covid SI vacunada no 0)
+(prob Covid SI 0)
 )
 
 (defrule inicio
 =>
-(printout t "Este es un sistema para decidir si usted padece Paludismo" crlf)
+(printout t "Este es un sistema para decidir si usted padece Covid" crlf)
 (assert (informar datos))
 (printout t crlf crlf "DATOS: Los datos estadísticos de que dispongo son:" crlf)
 )
@@ -157,7 +165,7 @@
 (printout t "Probabilidad de " ?X " si " ?i "=" ?v " es " ?p crlf)
 )
 
-(defrule Informa_probabilidad_a_priori
+(defrule Informa_probabilidad_a_priori_tener_covid
 (declare (salience -1))
 (deducciones simples)
 (prob ?X SI ?p)
@@ -274,8 +282,9 @@
 (retract ?f ?g) 
 )
 
-(defrule prob_posteriori
+(defrule prob_posteriori_tener_covid
 (declare (salience -1))
+(pregunta covid si)
 (red causal efectos)
 (prob_conjunta ?X ?p+x)
 (prob_conjunta_negativo ?X ?p-x)
@@ -287,12 +296,26 @@
 (printout t crlf)
 )
 
+(defrule prob_posteriori_no_tener_covid
+(declare (salience -1))
+(pregunta covid no)
+(red causal efectos)
+(prob_conjunta ?X ?p+x)
+(prob_conjunta_negativo ?X ?p-x)
+=>
+(bind ?pc (+ ?p+x ?p-x))
+(bind ?p (/ ?p-x ?pc))
+(assert (prob_posteriori ?X ?p))
+(printout t "FINALMENTE: Por el teorema de bayes a probabilidad de no " ?X " ha cambiado a " ?p crlf)
+(printout t crlf)
+)
+
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;   PARA PROBARLO  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;  Normalmente los valores de las variables que influyen se deducen a partir
 ;;;  de datos a mas bajo nivel (por ejemplo a partir del pais se deduce la zona
-;;;  de riesgo, o a traves del grupo sangíneo se deduce la inmunidad
+;;;  de riesgo, o a traves de la cartilla de vacunación se deduce si está vacunada
 ;;;  Los síntomas o efectos a veces se deducen y otras veces son introducidos por
 ;;;  el usuario
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -314,34 +337,54 @@
 (defrule preguntar_inmunidad
 (red causal causas)
 =>
-(printout t "Escribe una opcion: El tipo sanguíneo es de imnunidad (1=mayor 2=menor 3=Desconocido): " )
+(printout t "Escribe una opcion: Esta vacunada (1=si 2=no 3=Desconocido): " )
 (bind ?respuesta (read))
-(if (= ?respuesta 1) then (assert (valor inmunidad mayor))
-  else (if (= ?respuesta 2) then (assert (valor inmunidad menor))
-	 else (assert (valor inmunidad Desconocido))))
+(if (= ?respuesta 1) then (assert (valor vacunada si))
+  else (if (= ?respuesta 2) then (assert (valor vacunada no))
+	 else (assert (valor vacunada Desconocido))))
 (printout t crlf)
 )
 
 (defrule preguntar_fiebre
 (red causal efectos)
 =>
-(printout t "Ha tenido fiebre (1=si 2=no 3=Desconocido): " )
+(printout t "Ha tenido fiebre (1=alta 2=moderada 3=ninguna 4=Desconocido): " )
 (bind ?respuesta (read))
-(if (= ?respuesta 1) then (assert (valor fiebre si))
-  else (if (= ?respuesta 2) then (assert (valor fiebre no))
-	 else (assert (valor fiebre Desconocido))))
+(if (= ?respuesta 1) then (assert (valor fiebre alta))
+  else (if (= ?respuesta 2) then (assert (valor fiebre moderada))
+    else (if (= ?respuesta 3) then (assert (valor fiebre sin_fiebre))
+	 else (assert (valor fiebre Desconocido)))))
 (printout t crlf)
 )
 
-(defrule preguntar_gota
+(defrule preguntar_tos
 (red causal efectos)
 =>
-(printout t "Tiene gota gruesa (1=si 2=no 3=Desconocido): " )
+(printout t "Tiene tos (1=si 2=no 3=Desconocido): " )
 (bind ?respuesta (read))
-(if (= ?respuesta 1) then (assert (valor gota_gruesa si))
-  else (if (= ?respuesta 2) then (assert (valor gota_gruesa no))
-	 else (assert (valor gota_gruesa Desconocido))))
+(if (= ?respuesta 1) then (assert (valor tos si))
+  else (if (= ?respuesta 2) then (assert (valor tos no))
+	 else (assert (valor tos Desconocido))))
 (printout t crlf)
 )
 
+(defrule preguntar_test
+(red causal efectos)
+=>
+(printout t "Resultado test (1=positivo 2=negativo 3=Desconocido): " )
+(bind ?respuesta (read))
+(if (= ?respuesta 1) then (assert (valor test_covid si))
+  else (if (= ?respuesta 2) then (assert (valor test_covid no))
+	 else (assert (valor test_covid Desconocido))))
+(printout t crlf)
+)
 
+(defrule preguntar_covid
+(red causal efectos)
+=>
+(printout t "Quiere saber la probabilidad de (1=tener covid 2=no tener covid): " )
+(bind ?respuesta (read))
+(if (= ?respuesta 1) then (assert (pregunta covid si))
+  else (if (= ?respuesta 2) then (assert (pregunta covid no))))
+(printout t crlf)
+)
