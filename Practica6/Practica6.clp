@@ -4,22 +4,61 @@
 (defrule iniciarProceso
 (initial-fact)
 =>
-(focus ModuloPregunta)
+(focus ModuloEleccionModo)
 )
+
 
 ;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 (defmodule ModuloEleccionModo)
 
+(deffacts ModuloEleccionModo::HechosIniciales
+    (PreguntarModo)
+)
+
 (defrule ModuloEleccionModo::eleccionModo
+?X <- (PreguntarModo)
 =>
-(bind ?frase (obtenerFrasePreguntaInicio ?restoFrase ?frases))
-(printout t ?frase)
-(bind ?mensaje (read))
-(bind ?valor (obtenerValorDiscretoCarac ?caracteristica ?min ?max ?mensaje))
-(assert (Respuesta (caracteristica ?caracteristica)(valor ?valor)))
-(assert (Ultimo ?caracteristica))
-(retract ?X ?Y)
+(printout t "Que modo del SBC quieres utilizar (1: Asesorar, 2: Aconsejar, 3: Mostrar info): ")
+(bind ?respuesta (read))
+(if (eq ?respuesta 1)
+    then
+        (assert (Modo Asesorar))
+    else
+        (if (eq ?respuesta 2)
+        then
+            (assert (Modo Aconsejar))
+        else
+            (if (eq ?respuesta 3)
+            then
+                (assert (MostrarInfo))
+            else
+                (assert (volver_a_preguntar))
+            )
+        )
+)
+(retract ?X)
+)
+
+(defrule ModuloEleccionModo::mostrarInfo
+?X <- (MostrarInfo)
+=>
+(printout t "Info:")
+(printout t crlf)
+(printout t "  - Asesorar consiste en obtener sugerencias sobre que rama escoger en base a unas preguntas.")
+(printout t crlf)
+(printout t "  - Aconsejar consiste en obtener un consejo sobre que rama elegir entre dos que sugiere el usuario.")
+(printout t crlf)
+(assert (PreguntarModo))
+(retract ?X)
+)
+
+(defrule ModuloEleccionModo::volverAPregunta
+?X <- (volver_a_preguntar)
+=>
+(printout t "La respuesta no es correcta vuelva a responder.")
+(assert (PreguntarModo))
+(retract ?X)
 )
 
 (defrule ModuloEleccionModo::siguienteModulo
@@ -27,14 +66,15 @@
 =>
 (if (eq ?modo Asesorar)
     then
-        (focus ModuloSBCAsesorar)
+        (focus ModuloPregunta)
     else
         (if (eq ?modo Aconsejar)
         then
-            (focus ModuloSBCAconsejar)
+            (focus ModuloPregunta)
         )
 )
 )
+
 
 ;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
@@ -445,13 +485,13 @@
 (defrule ModuloPregunta::siguienteModulo
 (not (exists (Pregunta ?)))
 =>
-(focus ModuloSBCAsesorar)
+(focus ModuloSBCMario)
 )
 
 
 ;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-(defmodule ModuloSBCAsesorar
+(defmodule ModuloSBCMario
     (import ModuloPregunta deftemplate Respuesta)
     (export deftemplate RecomendacionMario)
 )
@@ -461,7 +501,7 @@
     (field motivo (default ?NONE))
 )
 
-(defrule ModuloSBCAsesorar::recibirRespuesta
+(defrule ModuloSBCMario::recibirRespuesta
 (declare (salience 2))
 (Respuesta (caracteristica ?caracteristica)(valor ?valor))
 =>
@@ -471,7 +511,7 @@
 
 ;;;;;;;;;;;;;;;; Hechos para representar las ramas a sugerir
 
-(deffacts ModuloSBCAsesorar::Ramas
+(deffacts ModuloSBCMario::Ramas
     (Rama Computación_y_Sistemas_Inteligentes)
     (Rama Ingeniería_del_Software)
     (Rama Ingeniería_de_Computadores)
@@ -527,7 +567,7 @@
 ;; Además contiene un hecho (Sugerencia ?id Rama ?valor_rama), que representa la rama que se sugiere
 ;; es en la sugerencia con identificador igual a ?id.
 
-(deffacts ModuloSBCAsesorar::Sugerencias
+(deffacts ModuloSBCMario::Sugerencias
     (Sugerencia 1 Ambito_trabajo "Docencia")
     (Sugerencia 1 Asignaturas "Teoricas")
     (Sugerencia 1 Matematicas "Si")
@@ -823,7 +863,7 @@
     (Sugerencia 46 Rama Ingeniería_del_Software)
 )
 
-(defrule ModuloSBCAsesorar::aniadir_motivos
+(defrule ModuloSBCMario::aniadir_motivos
 (declare (salience 2))
 (Sugerencia ?id Rama ?)
 =>
@@ -836,7 +876,7 @@
 ;; con el valor de esa característica en la sugerencia, o cuando se obtiene se responde NSNC
 ;; al valor de la característica.
 
-(defrule ModuloSBCAsesorar::aniadir_contador
+(defrule ModuloSBCMario::aniadir_contador
 (declare (salience 1))
 (Sugerencia ?id Rama ?)
 =>
@@ -848,7 +888,7 @@
 ;; Se activa cuando se cumplen se obtiene como resultado de la pregunta
 ;; nil ó el valor que se indica en la sugerencia para esa característica
 
-(defrule ModuloSBCAsesorar::aumentar_contador_nil
+(defrule ModuloSBCMario::aumentar_contador_nil
 (declare (salience 1))
 (Caracteristica ?caracteristica ?valor)
 (Sugerencia ?id ?caracteristica ?)
@@ -976,7 +1016,7 @@
     return ?frase
 )
 
-(defrule ModuloSBCAsesorar::aumentar_contador
+(defrule ModuloSBCMario::aumentar_contador
 (declare (salience 1))
 (Caracteristica ?caracteristica ?valor)
 (Sugerencia ?id ?caracteristica ?valorSuge)
@@ -987,7 +1027,7 @@
 
 ;; El incremento se hace en otra regla, para no entrar en un bucle infinito
 
-(defrule ModuloSBCAsesorar::incremento_contador_nil
+(defrule ModuloSBCMario::incremento_contador_nil
 (declare (salience 1))
 ?X <- (IncreContador ?id)
 ?Y <- (Sugerencia ?id Contador ?num)
@@ -996,7 +1036,7 @@
 (assert (Sugerencia ?id Contador (+ ?num 1)))
 )
 
-(defrule ModuloSBCAsesorar::incremento_contador
+(defrule ModuloSBCMario::incremento_contador
 (declare (salience 1))
 ?X <- (IncreContador ?id ?caracteristica ?valor)
 ?Y <- (Sugerencia ?id Contador ?num)
@@ -1017,7 +1057,7 @@
 ;; decir que todos los valores obtenidos de las características son iguales en esta sugerencia, por lo que es
 ;; aceptada como sugerencia.
 
-(defrule ModuloSBCAsesorar::aniadir_necesario
+(defrule ModuloSBCMario::aniadir_necesario
 (declare (salience 2))
 (Sugerencia ?id Rama ?)
 =>
@@ -1028,7 +1068,7 @@
 
 ;; Se activa por cada valor de características indicado en la sugerencia
 
-(defrule ModuloSBCAsesorar::aumentar_necesario
+(defrule ModuloSBCMario::aumentar_necesario
 (declare (salience 2))
 (Sugerencia ?id ?caracteristica ?valor)
 (test (neq ?caracteristica Rama))
@@ -1041,7 +1081,7 @@
 
 ;; El incremento se hace en otra regla, para no entrar en un bucle infinito
 
-(defrule ModuloSBCAsesorar::incremento_necesario
+(defrule ModuloSBCMario::incremento_necesario
 (declare (salience 2))
 ?X <- (IncreNecesario ?id)
 ?Y <- (Sugerencia ?id Necesario ?num)
@@ -1050,7 +1090,7 @@
 (assert (Sugerencia ?id Necesario (+ ?num 1)))
 )
 
-(defrule ModuloSBCAsesorar::aceptar_sugerencia
+(defrule ModuloSBCMario::aceptar_sugerencia
 (Sugerencia ?id Contador ?num1)
 (Sugerencia ?id Necesario ?num2)
 (test (eq ?num1 ?num2))
@@ -1077,7 +1117,7 @@
     return ?mensaje
 )
 
-(defrule ModuloSBCAsesorar::crear_recomendacion
+(defrule ModuloSBCMario::crear_recomendacion
 ?X <- (CrearRecomendacion ?id)
 (Sugerencia ?id Motivos $?motivos)
 (Sugerencia ?id Rama ?rama)
@@ -1087,17 +1127,194 @@
 (retract ?X)
 )
 
-(defrule ModuloSBCAsesorar::siguienteModulo
+(defrule ModuloSBCMario::siguienteModulo
 (declare (salience -1))
 =>
-(focus ModuloRecomendacion)
+(focus ModuloSBCSergio)
 )
+
+
+;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+
+(defmodule ModuloSBCSergio
+    (import ModuloPregunta deftemplate Respuesta)
+    (export deftemplate RecomendacionSergio)
+)
+
+(deftemplate RecomendacionSergio
+    (field rama (default ?NONE))
+    (field motivo (default ?NONE))
+)
+
+(defrule ModuloSBCSergio::recibirRespuesta
+(declare (salience -10))
+    (Respuesta (caracteristica ?caracteristica)(valor ?valor))
+=>
+    (assert (Caracteristica ?caracteristica ?valor))
+)
+
+(defrule ModuloSBCSergio::NotaAltaAsignaturasTeoricas
+    (Caracteristica Calificacion_media "Alta")
+    (Caracteristica Asignaturas "Teoricas")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (RecomendacionSergio
+        (rama Computación_y_Sistemas_Inteligentes)
+        (motivo "tienes buena nota (que la necesitas para entrar) y te gustan las asignaturas teoricas como aprendizaje automatico")
+    ))
+)
+
+(defrule ModuloSBCSergio::NotaAltaAsignaturasPracticas
+    (Caracteristica Calificacion_media "Alta")
+    (Caracteristica Asignaturas "Practicas")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (Recomienda Ingeniería_del_Software))
+    (assert (RecomendacionSergio
+        (rama Ingeniería_del_Software)
+        (motivo "tienes buena nota (la necesitas para poder entrar) y te gustan las asignaturas practicas")
+    ))
+)
+
+(defrule ModuloSBCSergio::NotaAltaAsignaturasAmbasMatematicasSi
+    (Caracteristica Calificacion_media "Alta")
+    (Caracteristica Asignaturas "Ambas")
+    (Caracteristica Matematicas "Si")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (Recomienda Computación_y_Sistemas_Inteligentes))
+    (assert (RecomendacionSergio
+        (rama Computación_y_Sistemas_Inteligentes)
+        (motivo "tienes buena nota (la necesitas para poder entrar) y te gustan las mates")
+    ))
+)
+
+(defrule ModuloSBCSergio::NotaAltaAsignaturasAmbasMatematicasNo
+    (Caracteristica Calificacion_media "Alta")
+    (Caracteristica Asignaturas "Ambas")
+    (Caracteristica Matematicas "No")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (Recomienda Ingeniería_del_Software))
+    (assert (RecomendacionSergio
+        (rama Ingeniería_del_Software)
+        (motivo "tienes buena nota (la necesitas para poder entrar) y no te gustan las mates")
+    ))
+)
+
+(defrule ModuloSBCSergio::NotaMediaMatematicasSiAsignaturasTeoricas
+    (Caracteristica Calificacion_media "Media")
+    (Caracteristica Matematicas "Si")
+    (Caracteristica Asignaturas "Teoricas")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (Recomienda Computación_y_Sistemas_Inteligentes))
+    (assert (RecomendacionSergio
+        (rama Computación_y_Sistemas_Inteligentes)
+        (motivo "seguramente tengas nota suficiente para entrar, te gustan las mates y las asignaturas teoricas")
+    ))
+)
+
+(defrule ModuloSBCSergio::NotaMediaMatematicasSiTrabajadorMucho
+    (Caracteristica Calificacion_media "Media")
+    (Caracteristica Matematicas "Si")
+    (Caracteristica Trabajador "Mucho")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (Recomienda Computación_y_Sistemas_Inteligentes))
+    (assert (RecomendacionSergio
+        (rama Computación_y_Sistemas_Inteligentes)
+        (motivo "seguramente tengas nota suficiente para entrar, te gustan las mates y te consideras muy trabajador")
+    ))
+)
+
+(defrule ModuloSBCSergio::NotaMediaMatematicasSi
+    (Caracteristica Calificacion_media "Media")
+    (Caracteristica Matematicas "Si")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (Recomienda Ingeniería_del_Software))
+    (assert (RecomendacionSergio
+        (rama Ingeniería_del_Software)
+        (motivo "seguramente tengas nota suficiente para entrar y te gustan las matematicas")
+    ))
+)
+
+(defrule ModuloSBCSergio::NotaMediaHardwareSi
+    (Caracteristica Calificacion_media "Media")
+    (Caracteristica Hardware "Si")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (Recomienda Ingeniería_de_Computadores))
+    (assert (RecomendacionSergio
+        (rama Ingeniería_de_Computadores)
+        (motivo "te gusta el hardware")
+    ))
+)
+
+(defrule ModuloSBCSergio::NotaMediaAsignaturasPracticas
+    (Caracteristica Calificacion_media "Media")
+    (Caracteristica Asignaturas "Practicas")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (Recomienda Tecnologías_de_la_Información))
+    (assert (RecomendacionSergio
+        (rama Tecnologías_de_la_Información)
+        (motivo "tienes nota suficiente y te gustan las asignaturas practicas")
+    ))
+)
+
+(defrule ModuloSBCSergio::NotaMedia
+    (Caracteristica Calificacion_media "Media")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (Recomienda Sistemas_de_Información))
+    (assert (RecomendacionSergio
+        (rama Sistemas_de_Información)
+        (motivo "no vas a tener problemas para entrar")
+    ))
+)
+
+(defrule ModuloSBCSergio::NotaBajaHardwareSi
+    (Caracteristica Calificacion_media "Baja")
+    (Caracteristica Hardware "Si")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (Recomienda Ingeniería_de_Computadores))
+    (assert (RecomendacionSergio
+        (rama Ingeniería_de_Computadores)
+        (motivo "te gusta el hardware")
+    ))
+)
+
+(defrule ModuloSBCSergio::NotaBaja
+    (Caracteristica Calificacion_media "Baja")
+    (not (RecomendacionSergio (rama ?)(motivo ?)))
+=>
+    (assert (Recomienda Tecnologías_de_la_Información))
+    (assert (RecomendacionSergio
+        (rama Tecnologías_de_la_Información)
+        (motivo "no vas a tener problemas para entrar")
+    ))
+)
+
+(defrule ModuloSBCSergio::tieneRespuesta
+(declare (salience 100))
+    (RecomendacionSergio (rama ?)(motivo ?))
+=>
+    (focus ModuloRecomendacion)
+)
+
+
+
 
 ;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 
 (defmodule ModuloRecomendacion
-    (import ModuloSBCAsesorar deftemplate RecomendacionMario)
+    (import ModuloSBCSergio deftemplate RecomendacionSergio)
+    (import ModuloSBCMario deftemplate RecomendacionMario)
 )
 
 ;; Convierte a texto bonito
@@ -1107,6 +1324,27 @@
     (Rama Ingeniería_de_Computadores "Ingenieria de Computadores")
     (Rama Sistemas_de_Información "Sistemas de la Informacion")
     (Rama Tecnologías_de_la_Información "Tecnologias de la informacion")
+)
+
+;; Si se recomienda la misma rama, se unifica la respuesta y los motivos
+(defrule ModuloRecomendacion::coincideRecomendacion
+(declare (salience 1))
+    ?X <- (RecomendacionSergio (rama ?r)(motivo ?motivoS))
+    ?Y <- (RecomendacionMario (rama ?r)(motivo ?motivoM))
+    (Rama ?r ?rama)
+=>
+    (bind ?mensaje (str-cat "El sistema te recomienda " ?rama " porque " ?motivoM))
+    (assert (Recomendacion ?mensaje))
+    (retract ?X ?Y)
+)
+
+;; Si las ramas no coinciden, cada subsistema da su propia respuesta
+(defrule ModuloRecomendacion::recomendacionSergio
+    (RecomendacionSergio (rama ?r)(motivo ?motivo))
+    (Rama ?r ?rama)
+=>
+    (bind ?mensaje (str-cat "Sergio recomienda " ?rama  " porque " ?motivo))
+    (assert (Recomendacion ?mensaje))
 )
 
 (defrule ModuloRecomendacion::recomendacionMario
@@ -1122,6 +1360,43 @@
 =>
     (printout t ?mensaje crlf)
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ;##############################################################################################;
 ;##############################################################################################;
