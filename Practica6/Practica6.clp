@@ -66,11 +66,11 @@
 =>
 (if (eq ?modo Asesorar)
     then
-        (focus ModuloPregunta)
+        (focus ModuloPreguntaAsesorar)
     else
         (if (eq ?modo Aconsejar)
         then
-            (focus ModuloPregunta)
+            (focus ModuloPreguntaAconsejar)
         )
 )
 )
@@ -78,10 +78,7 @@
 
 ;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-
-
-
-(defmodule ModuloPregunta 
+(defmodule ModuloPreguntaAsesorar 
     (export deftemplate Respuesta)
 )
 
@@ -90,7 +87,7 @@
     (field valor (default ?NONE))
 )
 
-(deffacts ModuloPregunta::HechosIniciales
+(deffacts ModuloPreguntaAsesorar::HechosIniciales
     (Ultimo Ninguno)
     (Anterior Ninguno)
     (Pregunta Ambito_trabajo)
@@ -111,7 +108,7 @@
 ;; de diferente manera dependiendo de si es la primera pregunta o no, y de el valor obtenido 
 ;; en la ultima pregunta
 
-(deffacts ModuloPregunta::Frases
+(deffacts ModuloPreguntaAsesorar::Frases
     (Frase Inicio "En primer lugar" "Bien vamos a comenzar")
     (Frase Resto "Ya que" "Como")
     (Frase Calificacion_media "Alta" "tu calificacion media es alta")
@@ -141,7 +138,7 @@
 
 ;; Estas frases son las preguntas de cada caractarística.
 
-(deffacts ModuloPregunta::Preguntas
+(deffacts ModuloPreguntaAsesorar::Preguntas
     (FrasePregunta Calificacion_media "que nota media tienes?")
     (FrasePregunta Trabajador "me puedes decir como de trabajador eres (Mucho, Normal, Poco o NSNC)?")
     (FrasePregunta Matematicas "me puedes decir si te gustan las matematicas (Si, No o NSNC)?")
@@ -159,7 +156,7 @@
 
 ;;;;;;;;;;;;;;;; Reglas para obtener la frase de la primera pregunta
 
-(deffunction ModuloPregunta::obtenerFrasePreguntaInicio(?intro $?frases)
+(deffunction ModuloPreguntaAsesorar::obtenerFrasePreguntaInicio(?intro $?frases)
     (bind ?frase (nth$ (random 1 (length$ ?frases)) ?frases))
     (bind ?frase (str-cat ?frase ", " ?intro " "))
 
@@ -169,7 +166,7 @@
 ;;;;;;;;;;;;;;;; Función para obtener el valor discreto de una característica
 ;;;;;;;;;;;;;;;; a partir de su valor continuo
 
-(deffunction ModuloPregunta::obtenerValorNumerico (?caracteristica ?valor)
+(deffunction ModuloPreguntaAsesorar::obtenerValorNumerico (?caracteristica ?valor)
     (switch ?caracteristica
         (case Calificacion_media then
             (if (and (<= 5 ?valor) (< ?valor 7))
@@ -189,7 +186,7 @@
 ;;;;;;;;;;;;;;;; Funciones para comprobar si el valor obtenido en la pregunta
 ;;;;;;;;;;;;;;;; es correcto respecto del rango continuo de la característica
 
-(deffunction ModuloPregunta::perteneceAlRangoContinuo (?palabra ?min ?max)
+(deffunction ModuloPreguntaAsesorar::perteneceAlRangoContinuo (?palabra ?min ?max)
     (bind ?salida nil)
     (if (and (<= ?min ?palabra) (<= ?palabra ?max))
     then (bind ?salida ?palabra)
@@ -201,7 +198,7 @@
 ;; Primero se comprueba si está en su rango continuo, y si lo está se obtiene
 ;; el valor discreto a partir del valor continuo obtenido y se devuelve
 
-(deffunction ModuloPregunta::obtenerValorDiscretoCarac (?caracteristica ?min ?max ?mensaje)
+(deffunction ModuloPreguntaAsesorar::obtenerValorDiscretoCarac (?caracteristica ?min ?max ?mensaje)
     (bind ?valor "Repetir")
     (if (eq (lowcase (str-cat ?mensaje)) "nsnc")
     then
@@ -221,7 +218,7 @@
 
 ;;;;;;;;;;;;;;;; Reglas para obtener la frase del resto de preguntas
 
-(deffunction ModuloPregunta::obtenerFrasePreguntaResto(?intro ?pregunta $?frases)
+(deffunction ModuloPreguntaAsesorar::obtenerFrasePreguntaResto(?intro ?pregunta $?frases)
     (bind ?frase (nth$ (random 1 (length$ ?frases)) ?frases))
     (bind ?frase (str-cat ?frase " " ?intro ", " ?pregunta " "))
 
@@ -232,7 +229,7 @@
 ;;;;;;;;;;;;;;;; Función para comprobar si el valor obtenido en la pregunta
 ;;;;;;;;;;;;;;;; es correcto respecto del rango discreto de la característica
 
-(deffunction ModuloPregunta::perteneceAlRangoDiscreto (?palabra $?rango)
+(deffunction ModuloPreguntaAsesorar::perteneceAlRangoDiscreto (?palabra $?rango)
     (bind ?valor "Repetir")
     (if (eq (lowcase ?palabra) "nsnc")
     then
@@ -263,7 +260,7 @@
 ;;;;;;;;;;;;;;;; de que se haya respodido de forma parcial a una pregunta, es
 ;;;;;;;;;;;;;;;; decir, ha respondido NSNC
 
-(deffunction ModuloPregunta::obtener_nombre_caracteristica (?caracteristica)
+(deffunction ModuloPreguntaAsesorar::obtener_nombre_caracteristica (?caracteristica)
     (switch ?caracteristica
         (case Ambito_trabajo then 
             return "no has sabido responder a la pregunta del ambito de trabajo"
@@ -297,7 +294,7 @@
 
 ;;;;;;;;;;;;;;;; Hechos para representar los rangos discretos de las características
 
-(deffacts ModuloPregunta::Rangos_discretos
+(deffacts ModuloPreguntaAsesorar::Rangos_discretos
 (Rango Calificacion_media "Alta" "Media" "Baja")
 (Rango Trabajador "Mucho" "Normal" "Poco")
 (Rango Matematicas "Si" "No")
@@ -312,14 +309,14 @@
 ;;;;;;;;;;;;;;;; Hechos para representar los rangos continuos de las características
 ;;;;;;;;;;;;;;;; cuyo valor recibido por la entrada sea continuo
 
-(deffacts ModuloPregunta::Rangos_numericos
+(deffacts ModuloPreguntaAsesorar::Rangos_numericos
 (RangoNumerico Calificacion_media 5 10)
 )
 
 ;; En el caso de ser la primera pregunta y ser sobre una característica de la que se
 ;; obtiene un valor continuo
 
-(defrule ModuloPregunta::pregunta_inicio_continuo
+(defrule ModuloPreguntaAsesorar::pregunta_inicio_continuo
 (Anterior Ninguno)
 ?X <- (Pregunta ?caracteristica)
 ?Y <- (Ultimo ?)
@@ -339,7 +336,7 @@
 ;; En el caso de ser la primera pregunta y ser sobre una característica de la que se
 ;; obtiene un valor discreto
 
-(defrule ModuloPregunta::pregunta_inicio_discreto
+(defrule ModuloPreguntaAsesorar::pregunta_inicio_discreto
 (Anterior Ninguno)
 ?X <- (Pregunta ?caracteristica)
 ?Y <- (Ultimo ?)
@@ -363,7 +360,7 @@
 ;; Hay dos reglas, una para manejar los casos en que la pregunta del requisito de la pregunta
 ;; que vamos a realizar, fue respondida con NSNC
 
-(defrule ModuloPregunta::pregunta_resto_continuo_nil
+(defrule ModuloPreguntaAsesorar::pregunta_resto_continuo_nil
 (Anterior ?nombre)
 (test (neq ?nombre Ninguno))
 ?X <- (Pregunta ?caracteristica)
@@ -382,7 +379,7 @@
 (retract ?X ?Y)
 )
 
-(defrule ModuloPregunta::pregunta_resto_continuo
+(defrule ModuloPreguntaAsesorar::pregunta_resto_continuo
 (Anterior ?nombre)
 (test (neq ?nombre Ninguno))
 ?X <- (Pregunta ?caracteristica)
@@ -409,7 +406,7 @@
 ;; Hay dos reglas, una para manejar los casos en que la pregunta del requisito de la pregunta
 ;; que vamos a realizar, fue respondida con NSNC
 
-(defrule ModuloPregunta::pregunta_resto_discreto_nil
+(defrule ModuloPreguntaAsesorar::pregunta_resto_discreto_nil
 (Anterior ?nombre)
 (test (neq ?nombre Ninguno))
 ?X <- (Pregunta ?caracteristica)
@@ -429,7 +426,7 @@
 (retract ?X ?Y)
 )
 
-(defrule ModuloPregunta::pregunta_resto_discreto
+(defrule ModuloPreguntaAsesorar::pregunta_resto_discreto
 (Anterior ?nombre)
 (test (neq ?nombre Ninguno))
 ?X <- (Pregunta ?caracteristica)
@@ -458,7 +455,7 @@
 ;; en el rango de la característica. El rango no se tiene en cuenta si se
 ;; responde NSNC.
 
-(defrule ModuloPregunta::volver_a_preguntar
+(defrule ModuloPreguntaAsesorar::volver_a_preguntar
 (declare (salience 9999))
 ?X <- (Respuesta (caracteristica ?caracteristica)(valor ?valor))
 ?Y <- (Ultimo ?ultimo)
@@ -482,7 +479,7 @@
 (retract ?X)
 )
 
-(defrule ModuloPregunta::siguienteModulo
+(defrule ModuloPreguntaAsesorar::siguienteModulo
 (not (exists (Pregunta ?)))
 =>
 (focus ModuloSBCMario)
@@ -492,7 +489,7 @@
 ;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 (defmodule ModuloSBCMario
-    (import ModuloPregunta deftemplate Respuesta)
+    (import ModuloPreguntaAsesorar deftemplate Respuesta)
     (export deftemplate RecomendacionMario)
 )
 
@@ -1130,190 +1127,14 @@
 (defrule ModuloSBCMario::siguienteModulo
 (declare (salience -1))
 =>
-(focus ModuloSBCSergio)
+(focus ModuloRecomendacion)
 )
-
-
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-
-(defmodule ModuloSBCSergio
-    (import ModuloPregunta deftemplate Respuesta)
-    (export deftemplate RecomendacionSergio)
-)
-
-(deftemplate RecomendacionSergio
-    (field rama (default ?NONE))
-    (field motivo (default ?NONE))
-)
-
-(defrule ModuloSBCSergio::recibirRespuesta
-(declare (salience -10))
-    (Respuesta (caracteristica ?caracteristica)(valor ?valor))
-=>
-    (assert (Caracteristica ?caracteristica ?valor))
-)
-
-(defrule ModuloSBCSergio::NotaAltaAsignaturasTeoricas
-    (Caracteristica Calificacion_media "Alta")
-    (Caracteristica Asignaturas "Teoricas")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (RecomendacionSergio
-        (rama Computación_y_Sistemas_Inteligentes)
-        (motivo "tienes buena nota (que la necesitas para entrar) y te gustan las asignaturas teoricas como aprendizaje automatico")
-    ))
-)
-
-(defrule ModuloSBCSergio::NotaAltaAsignaturasPracticas
-    (Caracteristica Calificacion_media "Alta")
-    (Caracteristica Asignaturas "Practicas")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (Recomienda Ingeniería_del_Software))
-    (assert (RecomendacionSergio
-        (rama Ingeniería_del_Software)
-        (motivo "tienes buena nota (la necesitas para poder entrar) y te gustan las asignaturas practicas")
-    ))
-)
-
-(defrule ModuloSBCSergio::NotaAltaAsignaturasAmbasMatematicasSi
-    (Caracteristica Calificacion_media "Alta")
-    (Caracteristica Asignaturas "Ambas")
-    (Caracteristica Matematicas "Si")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (Recomienda Computación_y_Sistemas_Inteligentes))
-    (assert (RecomendacionSergio
-        (rama Computación_y_Sistemas_Inteligentes)
-        (motivo "tienes buena nota (la necesitas para poder entrar) y te gustan las mates")
-    ))
-)
-
-(defrule ModuloSBCSergio::NotaAltaAsignaturasAmbasMatematicasNo
-    (Caracteristica Calificacion_media "Alta")
-    (Caracteristica Asignaturas "Ambas")
-    (Caracteristica Matematicas "No")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (Recomienda Ingeniería_del_Software))
-    (assert (RecomendacionSergio
-        (rama Ingeniería_del_Software)
-        (motivo "tienes buena nota (la necesitas para poder entrar) y no te gustan las mates")
-    ))
-)
-
-(defrule ModuloSBCSergio::NotaMediaMatematicasSiAsignaturasTeoricas
-    (Caracteristica Calificacion_media "Media")
-    (Caracteristica Matematicas "Si")
-    (Caracteristica Asignaturas "Teoricas")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (Recomienda Computación_y_Sistemas_Inteligentes))
-    (assert (RecomendacionSergio
-        (rama Computación_y_Sistemas_Inteligentes)
-        (motivo "seguramente tengas nota suficiente para entrar, te gustan las mates y las asignaturas teoricas")
-    ))
-)
-
-(defrule ModuloSBCSergio::NotaMediaMatematicasSiTrabajadorMucho
-    (Caracteristica Calificacion_media "Media")
-    (Caracteristica Matematicas "Si")
-    (Caracteristica Trabajador "Mucho")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (Recomienda Computación_y_Sistemas_Inteligentes))
-    (assert (RecomendacionSergio
-        (rama Computación_y_Sistemas_Inteligentes)
-        (motivo "seguramente tengas nota suficiente para entrar, te gustan las mates y te consideras muy trabajador")
-    ))
-)
-
-(defrule ModuloSBCSergio::NotaMediaMatematicasSi
-    (Caracteristica Calificacion_media "Media")
-    (Caracteristica Matematicas "Si")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (Recomienda Ingeniería_del_Software))
-    (assert (RecomendacionSergio
-        (rama Ingeniería_del_Software)
-        (motivo "seguramente tengas nota suficiente para entrar y te gustan las matematicas")
-    ))
-)
-
-(defrule ModuloSBCSergio::NotaMediaHardwareSi
-    (Caracteristica Calificacion_media "Media")
-    (Caracteristica Hardware "Si")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (Recomienda Ingeniería_de_Computadores))
-    (assert (RecomendacionSergio
-        (rama Ingeniería_de_Computadores)
-        (motivo "te gusta el hardware")
-    ))
-)
-
-(defrule ModuloSBCSergio::NotaMediaAsignaturasPracticas
-    (Caracteristica Calificacion_media "Media")
-    (Caracteristica Asignaturas "Practicas")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (Recomienda Tecnologías_de_la_Información))
-    (assert (RecomendacionSergio
-        (rama Tecnologías_de_la_Información)
-        (motivo "tienes nota suficiente y te gustan las asignaturas practicas")
-    ))
-)
-
-(defrule ModuloSBCSergio::NotaMedia
-    (Caracteristica Calificacion_media "Media")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (Recomienda Sistemas_de_Información))
-    (assert (RecomendacionSergio
-        (rama Sistemas_de_Información)
-        (motivo "no vas a tener problemas para entrar")
-    ))
-)
-
-(defrule ModuloSBCSergio::NotaBajaHardwareSi
-    (Caracteristica Calificacion_media "Baja")
-    (Caracteristica Hardware "Si")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (Recomienda Ingeniería_de_Computadores))
-    (assert (RecomendacionSergio
-        (rama Ingeniería_de_Computadores)
-        (motivo "te gusta el hardware")
-    ))
-)
-
-(defrule ModuloSBCSergio::NotaBaja
-    (Caracteristica Calificacion_media "Baja")
-    (not (RecomendacionSergio (rama ?)(motivo ?)))
-=>
-    (assert (Recomienda Tecnologías_de_la_Información))
-    (assert (RecomendacionSergio
-        (rama Tecnologías_de_la_Información)
-        (motivo "no vas a tener problemas para entrar")
-    ))
-)
-
-(defrule ModuloSBCSergio::tieneRespuesta
-(declare (salience 100))
-    (RecomendacionSergio (rama ?)(motivo ?))
-=>
-    (focus ModuloRecomendacion)
-)
-
-
 
 
 ;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 
 (defmodule ModuloRecomendacion
-    (import ModuloSBCSergio deftemplate RecomendacionSergio)
     (import ModuloSBCMario deftemplate RecomendacionMario)
 )
 
@@ -1324,27 +1145,6 @@
     (Rama Ingeniería_de_Computadores "Ingenieria de Computadores")
     (Rama Sistemas_de_Información "Sistemas de la Informacion")
     (Rama Tecnologías_de_la_Información "Tecnologias de la informacion")
-)
-
-;; Si se recomienda la misma rama, se unifica la respuesta y los motivos
-(defrule ModuloRecomendacion::coincideRecomendacion
-(declare (salience 1))
-    ?X <- (RecomendacionSergio (rama ?r)(motivo ?motivoS))
-    ?Y <- (RecomendacionMario (rama ?r)(motivo ?motivoM))
-    (Rama ?r ?rama)
-=>
-    (bind ?mensaje (str-cat "El sistema te recomienda " ?rama " porque " ?motivoM))
-    (assert (Recomendacion ?mensaje))
-    (retract ?X ?Y)
-)
-
-;; Si las ramas no coinciden, cada subsistema da su propia respuesta
-(defrule ModuloRecomendacion::recomendacionSergio
-    (RecomendacionSergio (rama ?r)(motivo ?motivo))
-    (Rama ?r ?rama)
-=>
-    (bind ?mensaje (str-cat "Sergio recomienda " ?rama  " porque " ?motivo))
-    (assert (Recomendacion ?mensaje))
 )
 
 (defrule ModuloRecomendacion::recomendacionMario
@@ -1362,37 +1162,9 @@
 )
 
 
+;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+(defmodule ModuloPreguntaAconsejar)
 
 
 
