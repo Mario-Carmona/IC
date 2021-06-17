@@ -47,7 +47,7 @@
 (printout t crlf)
 (printout t "  - Asesorar consiste en obtener sugerencias sobre que rama escoger en base a unas preguntas.")
 (printout t crlf)
-(printout t "  - Aconsejar consiste en obtener un consejo sobre que rama elegir entre dos que sugiere el usuario.")
+(printout t "  - Aconsejar consiste en obtener un consejo sobre que asignatura elegir entre dos que sugiere el usuario.")
 (printout t crlf)
 (assert (PreguntarModo))
 (retract ?X)
@@ -342,7 +342,7 @@
 ?Y <- (Ultimo ?)
 (Frase Inicio $?frases)
 (FrasePregunta ?caracteristica ?restoFrase)
-(not (RangoNumerico ?caracteristica ? ?))
+(not (exists (RangoNumerico ?caracteristica ? ?)))
 (Rango ?caracteristica $?rango)
 =>
 (bind ?frase (obtenerFrasePreguntaInicio ?restoFrase ?frases))
@@ -414,7 +414,7 @@
 (Respuesta (caracteristica ?nombre)(valor "nil"))
 (Frase Resto $?frases)
 (FrasePregunta ?caracteristica ?restoFrase)
-(not (RangoNumerico ?caracteristica ? ?))
+(not (exists (RangoNumerico ?caracteristica ? ?)))
 (Rango ?caracteristica $?rango)
 =>
 (bind ?frase (obtenerFrasePreguntaResto (obtener_nombre_caracteristica ?nombre) ?restoFrase ?frases))
@@ -436,7 +436,7 @@
 (Frase Resto $?frases)
 (Frase ?nombre ?valor ?restoFrase1)
 (FrasePregunta ?caracteristica ?restoFrase2)
-(not (RangoNumerico ?caracteristica ? ?))
+(not (exists (RangoNumerico ?caracteristica ? ?)))
 (Rango ?caracteristica $?rango)
 =>
 (bind ?frase (obtenerFrasePreguntaResto ?restoFrase1 ?restoFrase2 ?frases))
@@ -1164,36 +1164,540 @@
 
 ;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-(defmodule ModuloPreguntaAconsejar)
+(defmodule ModuloPreguntaAconsejar
+    (export deftemplate FactorCerteza)
+    (export deftemplate Eleccion)
+)
+
+(deftemplate FactorCerteza
+    (field evidencia (default ?NONE))
+    (field valor (default ?NONE))
+    (field certeza (default ?NONE))
+)
+
+(deftemplate Eleccion
+    (field numero (default ?NONE))
+    (field asignatura (default ?NONE))
+)
+
+(deffacts ModuloPreguntaAconsejar::Asignaturas
+    (Asignatura Administración_de_bases_de_datos)
+    (Asignatura Aprendizaje_automatico)
+    (Asignatura Arquitectura_de_sistemas)
+    (Asignatura Desarrollo_de_sistemas_distribuidos)
+    (Asignatura Ingenieria_del_conocimiento)
+    (Asignatura Programacion_web)
+    (Asignatura Desarrollo_de_software)
+)
+
+(deffacts ConvertirAsignatura
+    (Convertir "Administracion de bases de datos" Administración_de_bases_de_datos)
+    (Convertir "Aprendizaje automatico" Aprendizaje_automatico)
+    (Convertir "Arquitectura de sistemas" Arquitectura_de_sistemas)
+    (Convertir "Desarrollo de sistemas distribuidos" Desarrollo_de_sistemas_distribuidos)
+    (Convertir "Ingenieria del conocimiento" Ingenieria_del_conocimiento)
+    (Convertir "Programacion web" Programacion_web)
+    (Convertir "Desarrollo de software" Desarrollo_de_software)
+)
+
+(deffacts ModuloPreguntaAconsejar::Evidencias
+    (Evidencia Ambito_trabajo)
+    (Evidencia Calificacion_media)
+    (Evidencia Trabajador)
+    (Evidencia Matematicas)
+    (Evidencia Programar)
+    (Evidencia Hardware)
+    (Evidencia Lugar_trabajo)
+    (Evidencia Asignaturas)
+    (Evidencia Nivel_abstraccion)
+)
+
+(deffacts ModuloPreguntaAconsejar::Valores
+    (PosibleValor Ambito_trabajo 3 Docencia Empresa_privada Empresa_publica)
+    (PosibleValor Calificacion_media 3 Baja 7 Media 9 Alta 11)
+    (PosibleValor Trabajador 3 Poco Normal Mucho)
+    (PosibleValor Matematicas 2 Si No)
+    (PosibleValor Programar 2 Si No)
+    (PosibleValor Hardware 2 Si No)
+    (PosibleValor Lugar_trabajo 2 Espania Extranjero)
+    (PosibleValor Asignaturas 3 Practicas Teoricas Ambas)
+    (PosibleValor Nivel_abstraccion 3 Alto Medio Bajo)
+)
+
+(deffacts ModuloPreguntaAconsejar::EvidenciaNumericas
+    (EvidenciaNumerica Calificacion_media 0 10)
+)
+
+(deffacts ModuloPreguntaAconsejar::Preguntas
+    (Pregunta Calificacion_media "Que nota media tienes? ")
+    (Pregunta Trabajador "Me puedes decir como de trabajador eres (1: Mucho, 2: Normal, 3: Poco)? ")
+    (Pregunta Matematicas "Me puedes decir si te gustan las matematicas (1: Si, 2: No)? ")
+    (Pregunta Programar "Me puedes decir si te gusta programar (1: Si, 2: No)? ")
+    (Pregunta Hardware "Me puedes decir si te gusta el hardware (1: Si, 2: No)? ")
+    (Pregunta Ambito_trabajo "En que ambito del trabajo te gustaria trabajar (1: Docencia, 2: Empresa publica, 3: Empresa privada)? ")
+    (Pregunta Lugar_trabajo "En que lugar te gustaria trabajar (1: Espania, 2: Extranjero)? ")
+    (Pregunta Asignaturas "Que tipo de asignaturas prefieres (1: Teoricas, 2: Practicas, 3: Ambas)? ")
+    (Pregunta Nivel_abstraccion "Que nivel de abstraccion tienes (1: Alto, 2: Medio, 3: Bajo)? ")
+)
+
+(deffunction ModuloPreguntaAconsejar::obtenerElemento (?posicion $?lista)
+    (bind ?elemento (nth$ ?posicion ?lista))
+    return ?elemento
+)
+
+(defrule ModuloPreguntaAconsejar::pregunta_eleccion1
+(declare (salience 2))
+(not (exists (Eleccion1_ini ?)))
+=>
+(printout t "Cual es la primera asignatura que quieres que compare: ")
+(bind ?respuesta (readline))
+(assert (Eleccion1_ini ?respuesta))
+)
+
+(defrule ModuloPreguntaAconsejar::comprobar_eleccion1
+(declare (salience 9999))
+?X <- (Eleccion1_ini ?eleccion)
+(not (exists (Convertir ?eleccion ?conv_eleccion)))
+=>
+(printout t "La respuesta no es correcta. ")
+(retract ?X)
+)
+
+(defrule ModuloPreguntaAconsejar::convertir_eleccion1
+(declare (salience 2))
+(Eleccion1_ini ?eleccion)
+(Convertir ?eleccion ?conv_eleccion)
+=>
+(assert (Eleccion (numero 1)(asignatura ?conv_eleccion)))
+)
+
+(defrule ModuloPreguntaAconsejar::pregunta_eleccion2
+(declare (salience 1))
+(not (exists (Eleccion2_ini ?)))
+=>
+(printout t "Cual es la segunda asignatura que quieres que compare: ")
+(bind ?respuesta (readline))
+(assert (Eleccion2_ini ?respuesta))
+)
+
+(defrule ModuloPreguntaAconsejar::comprobar_eleccion2
+(declare (salience 9999))
+?X <- (Eleccion2_ini ?eleccion)
+(not (exists (Convertir ?eleccion ?conv_eleccion)))
+=>
+(printout t "La respuesta no es correcta. ")
+(retract ?X)
+)
+
+(defrule ModuloPreguntaAconsejar::convertir_eleccion2
+(declare (salience 1))
+(Eleccion2_ini ?eleccion)
+(Convertir ?eleccion ?conv_eleccion)
+=>
+(assert (Eleccion (numero 2)(asignatura ?conv_eleccion)))
+)
+
+(defrule ModuloPreguntaAconsejar::pregunta_evidencias_no_numerico
+?X <- (Evidencia ?e)
+(not (exists (EvidenciaNumerica ?e $?)))
+(Pregunta ?e ?pregunta)
+(PosibleValor ?e ?max_valores $?valores)
+=>
+(printout t ?pregunta)
+(bind ?respuesta (read))
+(if (and (> ?respuesta 0) (<= ?respuesta ?max_valores))
+then
+    (bind ?respuesta (obtenerElemento ?respuesta ?valores))
+    (assert (Evidencia ?e ?respuesta))
+else
+    (assert (volver_a_preguntar_evidencia ?e))  
+)
+(retract ?X)
+)
+
+(deffunction ModuloPreguntaAconsejar::convertirRespuesta (?valor $?lista)
+    (bind ?respuesta "")
+    (bind ?i 1)
+    (bind ?tam (length$ ?lista))
+    (while (<= ?i ?tam) do
+        (bind ?etiqueta (nth$ ?i ?lista))
+        (bind ?limite (nth$ (+ ?i 1) ?lista))
+        (if (< ?valor ?limite)
+        then
+            (bind ?respuesta ?etiqueta)
+            (bind ?i (+ ?tam 1))
+        else
+            (bind ?i (+ ?i 2))
+        )
+    )
+
+    return ?respuesta
+)
+
+(defrule ModuloPreguntaAconsejar::pregunta_evidencias_numerico
+?X <- (Evidencia ?e)
+(EvidenciaNumerica ?e ?min ?max)
+(Pregunta ?e ?pregunta)
+(PosibleValor ?e ?max_valores $?valores)
+=>
+(printout t ?pregunta)
+(bind ?respuesta (read))
+(if (and (>= ?respuesta ?min) (<= ?respuesta ?max))
+then
+    (bind ?respuesta (convertirRespuesta ?respuesta ?valores))
+    (assert (Evidencia ?e ?respuesta))
+else
+    (assert (volver_a_preguntar_evidencia ?e))  
+)
+(retract ?X)
+)
+
+(defrule ModuloPreguntaAconsejar::volver_a_preguntar_evidencia
+(declare (salience 1))
+?X <- (volver_a_preguntar_evidencia ?e)
+=>
+(printout t "La respuesta no es correcta. ")
+(assert (Evidencia ?e))
+(retract ?X)
+)
+
+(defrule ModuloPreguntaAconsejar::preguntar_grado_certeza
+?X <- (Evidencia ?e ?r)
+=>
+(printout t "Con que grado de certeza lo afirmas [0,1]? ")
+(bind ?certeza (read))
+(if (and (<= 0 ?certeza) (<= ?certeza 1))
+    then
+        (assert (FactorCerteza (evidencia ?e)(valor ?r)(certeza ?certeza)))
+    else
+        (assert (volver_a_preguntar_certeza ?e ?r))
+)
+(retract ?X)
+)
+
+(defrule ModuloPreguntaAconsejar::volver_a_preguntar_certeza
+(declare (salience 1))
+?X <- (volver_a_preguntar_certeza ?e ?r)
+=>
+(printout t "El valor de certeza no es correcto. ")
+(assert (Evidencia ?e ?r))
+(retract ?X)
+)
+
+(defrule ModuloPreguntaAconsejar::siguienteModulo
+(not (exists (Evidencia $?)))
+=>
+(focus ModuloCalculoAconsejar)
+)
 
 
+;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+(defmodule ModuloCalculoAconsejar
+    (import ModuloPreguntaAconsejar deftemplate FactorCerteza)
+    (export deftemplate Certeza)
+)
+
+(deftemplate Certeza
+    (field evidencia (default ?NONE))
+    (field certeza (default ?NONE))
+)
+
+(deffunction ModuloCalculoAconsejar::encadenado (?fc_antecedente ?fc_regla)
+(if (> ?fc_antecedente 0)
+    then
+        (bind ?rv (* ?fc_antecedente ?fc_regla))
+    else
+        (bind ?rv 0)
+)
+return ?rv
+)
+
+(defrule ModuloCalculoAconsejar::R1
+(FactorCerteza (evidencia Ambito_trabajo)(valor Empresa_privada)(certeza ?f1))
+(FactorCerteza (evidencia Asignaturas)(valor Ambas)(certeza ?f2))
+(FactorCerteza (evidencia Nivel_abstraccion)(valor Alto)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.85))
+(assert (FactorCerteza (evidencia Administración_de_bases_de_datos)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como el ambito de trabajo que prefieres es la empresa privada con una certeza de " ?f1 ", te gustan ambos tipos de asignaturas con una certeza de " ?f2 " y tu nivel de abstracción es alto con una certeza de " ?f3 " entonces te combiene elegir Administracion de bases de datos con una certeza de " ?certeza))
+(assert (explicacion Administración_de_bases_de_datos ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R2
+(FactorCerteza (evidencia Ambito_trabajo)(valor Empresa_publica)(certeza ?f1))
+(FactorCerteza (evidencia Asignaturas)(valor Ambas)(certeza ?f2))
+(FactorCerteza (evidencia Nivel_abstraccion)(valor Alto)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.7))
+(assert (FactorCerteza (evidencia Administración_de_bases_de_datos)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como el ambito de trabajo que prefieres es la empresa privada con una certeza de " ?f1 ", te gustan ambos tipos de asignaturas con una certeza de " ?f2 " y tu nivel de abstracción es alto con una certeza de " ?f3 " entonces te combiene elegir Administracion de bases de datos con una certeza de " ?certeza))
+(assert (explicacion Administración_de_bases_de_datos ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R3
+(FactorCerteza (evidencia Matematicas)(valor Si)(certeza ?f1))
+(FactorCerteza (evidencia Programar)(valor Si)(certeza ?f2))
+(FactorCerteza (evidencia Asignaturas)(valor Teoricas)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.8))
+(assert (FactorCerteza (evidencia Aprendizaje_automatico)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como te gustan las matematicas con una certeza de " ?f1 ", te gusta programar con una certeza de " ?f2 " y te gustan las asignaturas teoricas con una certeza de " ?f3 " entonces te combiene elegir Aprendizaje automatico con una certeza de " ?certeza))
+(assert (explicacion Aprendizaje_automatico ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R4
+(FactorCerteza (evidencia Matematicas)(valor Si)(certeza ?f1))
+(FactorCerteza (evidencia Programar)(valor No)(certeza ?f2))
+(FactorCerteza (evidencia Asignaturas)(valor Teoricas)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.67))
+(assert (FactorCerteza (evidencia Aprendizaje_automatico)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como te gustan las matematicas con una certeza de " ?f1 ", no te gusta programar con una certeza de " ?f2 " y te gustan las asignaturas teoricas con una certeza de " ?f3 " entonces te combiene elegir Aprendizaje automatico con una certeza de " ?certeza))
+(assert (explicacion Aprendizaje_automatico ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R5
+(FactorCerteza (evidencia Ambito_trabajo)(valor Empresa_privada)(certeza ?f1))
+(FactorCerteza (evidencia Trabajador)(valor Normal)(certeza ?f2))
+(FactorCerteza (evidencia Asignaturas)(valor Practicas)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.75))
+(assert (FactorCerteza (evidencia Arquitectura_de_sistemas)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como prefieres trabajar en el ambito de la empresa privada con una certeza de " ?f1 ", tu ritmo de trabajo es normal con una certeza de " ?f2 " y prefieres las asignaturas practicas con una certeza de " ?f3 " entonces te combiene elegir Aquitectura de sistemas con una certeza de " ?certeza))
+(assert (explicacion Arquitectura_de_sistemas ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R6
+(FactorCerteza (evidencia Ambito_trabajo)(valor Docencia)(certeza ?f1))
+(FactorCerteza (evidencia Trabajador)(valor Normal)(certeza ?f2))
+(FactorCerteza (evidencia Asignaturas)(valor Practicas)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.58))
+(assert (FactorCerteza (evidencia Arquitectura_de_sistemas)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como prefieres trabajar en el ambito de la docencia con una certeza de " ?f1 ", tu ritmo de trabajo es normal con una certeza de " ?f2 " y prefieres las asignaturas practicas con una certeza de " ?f3 " entonces te combiene elegir Aquitectura de sistemas con una certeza de " ?certeza))
+(assert (explicacion Arquitectura_de_sistemas ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R7
+(FactorCerteza (evidencia Programar)(valor Si)(certeza ?f1))
+(FactorCerteza (evidencia Nivel_abstraccion)(valor Alto)(certeza ?f2))
+(FactorCerteza (evidencia Asignaturas)(valor Ambas)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.74))
+(assert (FactorCerteza (evidencia Desarrollo_de_sistemas_distribuidos)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como te gusta programar con una certeza de " ?f1 ", tu nivel de abstraccion es alto con una certeza de " ?f2 " y te gustan las asignaturas tanto teoricas como practicas con una certeza de " ?f3 " entonces te combiene elegir Desarrollo de sistemas distribuidos con una certeza de " ?certeza))
+(assert (explicacion Desarrollo_de_sistemas_distribuidos ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R8
+(FactorCerteza (evidencia Programar)(valor Si)(certeza ?f1))
+(FactorCerteza (evidencia Nivel_abstraccion)(valor Alto)(certeza ?f2))
+(FactorCerteza (evidencia Asignaturas)(valor Practicas)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.65))
+(assert (FactorCerteza (evidencia Desarrollo_de_sistemas_distribuidos)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como te gusta programar con una certeza de " ?f1 ", tu nivel de abstraccion es alto con una certeza de " ?f2 " y te gustan las asignaturas practicas con una certeza de " ?f3 " entonces te combiene elegir Desarrollo de sistemas distribuidos con una certeza de " ?certeza))
+(assert (explicacion Desarrollo_de_sistemas_distribuidos ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R9
+(FactorCerteza (evidencia Ambito_trabajo)(valor Docencia)(certeza ?f1))
+(FactorCerteza (evidencia Nivel_abstraccion)(valor Alto)(certeza ?f2))
+(FactorCerteza (evidencia Calificacion_media)(valor Media)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.81))
+(assert (FactorCerteza (evidencia Ingenieria_del_conocimiento)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como prefieres trabajar en el ambito de la docencia con una certeza de " ?f1 ", tu nivel de abstraccion es alto con una certeza de " ?f2 " y tu calificación media es media con una certeza de " ?f3 " entonces te combiene elegir Ingenieria del conocimiento con una certeza de " ?certeza))
+(assert (explicacion Ingenieria_del_conocimiento ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R10
+(FactorCerteza (evidencia Ambito_trabajo)(valor Docencia)(certeza ?f1))
+(FactorCerteza (evidencia Nivel_abstraccion)(valor Alto)(certeza ?f2))
+(FactorCerteza (evidencia Matematicas)(valor Si)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.92))
+(assert (FactorCerteza (evidencia Ingenieria_del_conocimiento)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como prefieres trabajar en el ambito de la docencia con una certeza de " ?f1 ", tu nivel de abstraccion es alto con una certeza de " ?f2 " y te gustan las matematicas con una certeza de " ?f3 " entonces te combiene elegir Ingenieria del conocimiento con una certeza de " ?certeza))
+(assert (explicacion Ingenieria_del_conocimiento ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R11
+(FactorCerteza (evidencia Programar)(valor Si)(certeza ?f1))
+(FactorCerteza (evidencia Ambito_trabajo)(valor Empresa_privada)(certeza ?f2))
+(FactorCerteza (evidencia Asignaturas)(valor Practicas)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.95))
+(assert (FactorCerteza (evidencia Programacion_web)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como te gusta programar con una certeza de " ?f1 ", prefieres trabajar en el ambito de la empresa privada con una certeza de " ?f2 " y prefieres las asignaturas practicas con una certeza de " ?f3 " entonces te combiene elegir Ingenieria del conocimiento con una certeza de " ?certeza))
+(assert (explicacion Programacion_web ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R12
+(FactorCerteza (evidencia Programar)(valor Si)(certeza ?f1))
+(FactorCerteza (evidencia Ambito_trabajo)(valor Empresa_publica)(certeza ?f2))
+(FactorCerteza (evidencia Asignaturas)(valor Practicas)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.82))
+(assert (FactorCerteza (evidencia Programacion_web)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como te gusta programar con una certeza de " ?f1 ", prefieres trabajar en el ambito de la empresa publica con una certeza de " ?f2 " y prefieres las asignaturas practicas con una certeza de " ?f3 " entonces te combiene elegir Ingenieria del conocimiento con una certeza de " ?certeza))
+(assert (explicacion Programacion_web ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R13
+(FactorCerteza (evidencia Programar)(valor Si)(certeza ?f1))
+(FactorCerteza (evidencia Trabajador)(valor Normal)(certeza ?f2))
+(FactorCerteza (evidencia Lugar_trabajo)(valor Espania)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.78))
+(assert (FactorCerteza (evidencia Desarrollo_de_software)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como te gusta programar con una certeza de " ?f1 ", tu ritmo de trabajo es normal con una certeza de " ?f2 " y prefieres trabajar en Espania con una certeza de " ?f3 " entonces te combiene elegir Ingenieria del conocimiento con una certeza de " ?certeza))
+(assert (explicacion Desarrollo_de_software ?expl))
+)
+
+(defrule ModuloCalculoAconsejar::R14
+(FactorCerteza (evidencia Programar)(valor Si)(certeza ?f1))
+(FactorCerteza (evidencia Trabajador)(valor Normal)(certeza ?f2))
+(FactorCerteza (evidencia Lugar_trabajo)(valor Extranjero)(certeza ?f3))
+(test (and (and (> ?f1 0) (> ?f2 0)) (> ?f3 0)))
+=>
+(bind ?certeza (encadenado (* ?f1 ?f2 ?f3) 0.82))
+(assert (FactorCerteza (evidencia Desarrollo_de_software)(valor si)(certeza ?certeza)))
+(bind ?expl (str-cat "Como te gusta programar con una certeza de " ?f1 ", tu ritmo de trabajo es normal con una certeza de " ?f2 " y prefieres trabajar en el extranjero con una certeza de " ?f3 " entonces te combiene elegir Ingenieria del conocimiento con una certeza de " ?certeza))
+(assert (explicacion Desarrollo_de_software ?expl))
+)
+
+
+(deffunction ModuloCalculoAconsejar::combinacion (?fc1 ?fc2)
+(if (and (> ?fc1 0) (> ?fc2 0))
+    then
+        (bind ?rv (- (+ ?fc1 ?fc2) (* ?fc1 ?fc2)))
+    else
+        (if (and (< ?fc1 0) (< ?fc2 0))
+            then
+                (bind ?rv (+ (+ ?fc1 ?fc2) (* ?fc1 ?fc2)))
+            else 
+                (bind ?rv (/ (+ ?fc1 ?fc2) (- 1 (min (abs ?fc1) (abs ?fc2)))))
+        )
+)
+return ?rv
+)
+
+(defrule ModuloCalculoAconsejar::combinar
+(declare (salience 1))
+?f <- (FactorCerteza (evidencia ?h)(valor ?r)(certeza ?fc1))
+?g <- (FactorCerteza (evidencia ?h)(valor ?r)(certeza ?fc2))
+(test (neq ?fc1 ?fc2))
+=>
+(retract ?f ?g)
+(assert (FactorCerteza (evidencia ?h)(valor ?r)(certeza (combinacion ?fc1 ?fc2))))
+)
+
+
+(defrule ModuloCalculoAconsejar::combinar_signo
+(declare (salience 2))
+(FactorCerteza (evidencia ?h)(valor si)(certeza ?fc1))
+(FactorCerteza (evidencia ?h)(valor no)(certeza ?fc2))
+(Problema ?h)
+=>
+(assert (Certeza (evidencia ?h)(certeza (- ?fc1 ?fc2))))
+)
+
+(defrule ModuloCalculoAconsejar::obtener_certeza
+(declare (salience -1))
+(FactorCerteza (evidencia ?h)(valor ?)(certeza ?fc))
+(Problema ?h)
+=>
+(assert (Certeza (evidencia ?h)(certeza ?fc)))
+)
+
+(defrule ModuloCalculoAconsejar::eliminar_evidencias_con_menor_certeza
+(Certeza (evidencia ?h1)(certeza ?fc1))
+?X <- (Certeza (evidencia ?h2)(certeza ?fc2))
+(test (eq ?h1 ?h2))
+(test (< ?fc2 ?fc1))
+=>
+(retract ?X)
+)
+
+(defrule ModuloCalculoAconsejar::siguienteModulo
+(declare (salience -2))
+=>
+(focus ModuloRespuestaAconsejar)
+)
+
+
+;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+
+(defmodule ModuloRespuestaAconsejar
+    (import ModuloPreguntaAconsejar deftemplate Eleccion)
+    (import ModuloCalculoAconsejar deftemplate Certeza)
+)
+
+(defrule ModuloRespuestaAconsejar::elecciones_iguales
+(declare (salience 1))
+?X <- (Eleccion (numero 1)(asignatura ?h1))
+?Y <- (Eleccion (numero 2)(asignatura ?h2))
+(test (eq ?h1 ?h2))
+(Convertir ?nombre ?h1)
+=>
+(printout t "Te aconsejo que escogas la asignatura " ?nombre " porque has seleccionado la misma asignatura")
+(printout t crlf)
+(retract ?X ?Y)
+)
+
+
+(defrule ModuloRespuestaAconsejar::respuesta_eleccion1
+(Eleccion (numero 1)(asignatura ?h1))
+(Certeza (evidencia ?h1)(certeza ?fc1))
+(Eleccion (numero 2)(asignatura ?h2))
+(Certeza (evidencia ?h2)(certeza ?fc2))
+(> ?fc1 ?fc2)
+(Convertir ?nombre ?h1)
+=>
+(printout t "Te aconsejo que escogas la asignatura " ?nombre)
+(printout t crlf)
+(assert (Explicar ?h1))
+)
+
+(defrule ModuloRespuestaAconsejar::respuesta_eleccion2
+(Eleccion (numero 1)(asignatura ?h1))
+(Certeza (evidencia ?h1)(certeza ?fc1))
+(Eleccion (numero 2)(asignatura ?h2))
+(Certeza (evidencia ?h2)(certeza ?fc2))
+(> ?fc2 ?fc1)
+(Convertir ?nombre ?h2)
+=>
+(printout t "Te aconsejo que escogas la asignatura " ?nombre)
+(printout t crlf)
+(assert (Explicar ?h2))
+)
+
+(defrule ModuloRespuestaAconsejar::dar_explicaciones
+(Explicar ?h)
+(explicacion ?h ?expl)
+=>
+(printout t ?expl)
+(printout t crlf)
+)
 
 
 ;##############################################################################################;
 ;##############################################################################################;
 ;##############################################################################################;
 ;##############################################################################################;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

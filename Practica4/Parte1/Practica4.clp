@@ -1,25 +1,45 @@
-;;;;;;; ASESORAR RAMA DE INGENIERIA INFORMATICA A UN ESTUDIANTE ;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; --------------------------------------------------------------------------- ;
+;                                 Practica 4                                  ;
+; Diseñar un sistema modular que re-utilice e integre los sistemas expertos   ;
+; simples desarrollados por los miembros del grupo en la sesión anterior. El  ;
+; objetivo es crear un sistema nuevo que combine los sistemas simples y       ;
+; desarrollado por cada uno.                                                  ;
+;                                                                             ;
+; Estudiantes:                                                                ;
+; - Mario Carmona Segovia   (macarse@correo.ugr.es)                           ;
+; - Sergio Campoy Maldonado (scm0@correo.ugr.es)                              ;
+; --------------------------------------------------------------------------- ;
 
+
+
+; Inicia el módulo de preguntas lo primero de todo
 (defrule iniciarProceso
 (initial-fact)
 =>
 (focus ModuloPregunta)
 )
 
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 
-
+; --------------------------------------------------------------------------- ;
+; --------------------------- Modulo de Preguntas --------------------------- ;
+; --------------------------------------------------------------------------- ;
 
 (defmodule ModuloPregunta 
     (export deftemplate Respuesta)
 )
 
+; Template que va a estar disponible para los otros modulos
+; Template para las respuestas a las preguntas
 (deftemplate Respuesta
     (field caracteristica (default ?NONE))
     (field valor (default ?NONE))
 )
+
+
+; Hechos iniciales que guían el proceso de las preguntas, haciendo
+; que sean un poco personalizadas con los hechos Anterior, para que en
+; la pregunta 2 se haga referencia a lo que se respondió en la pregunta 1
 
 (deffacts ModuloPregunta::HechosIniciales
     (Ultimo Ninguno)
@@ -35,12 +55,12 @@
     (Pregunta Nivel_abstraccion)
 )
 
-;;;;;;;;;;;;;;;; Hechos para representar las frases utilizadas en la comunicación
-;;;;;;;;;;;;;;;; con el estudiante
+
+; Hechos para representar las frases utilizadas en la comunicación con el estudiante
 
 ;; Estas frases son las introductorias a la pregunta. Se emprezará la introducción a la pregunta
 ;; de diferente manera dependiendo de si es la primera pregunta o no, y de el valor obtenido 
-;; en la ultima pregunta
+;; en la última pregunta
 
 (deffacts ModuloPregunta::Frases
     (Frase Inicio "En primer lugar" "Bien vamos a comenzar")
@@ -70,7 +90,8 @@
     (Frase Nivel_abstraccion "Bajo" "tu nivel de abstraccion es bajo")
 )
 
-;; Estas frases son las preguntas de cada caractarística.
+
+; Estas frases son las preguntas de cada caractarística.
 
 (deffacts ModuloPregunta::Preguntas
     (FrasePregunta Calificacion_media "que nota media tienes?")
@@ -85,10 +106,12 @@
 )
 
 
+; ------------------------------------- ;
+; ------------- Preguntas ------------- ;
+; ------------------------------------- ;
 
-;;;;;;;;;;;;;;;; Preguntas
 
-;;;;;;;;;;;;;;;; Reglas para obtener la frase de la primera pregunta
+; Regla para obtener la frase de la primera pregunta
 
 (deffunction ModuloPregunta::obtenerFrasePreguntaInicio(?intro $?frases)
     (bind ?frase (nth$ (random 1 (length$ ?frases)) ?frases))
@@ -97,8 +120,8 @@
     return ?frase
 )
 
-;;;;;;;;;;;;;;;; Función para obtener el valor discreto de una característica
-;;;;;;;;;;;;;;;; a partir de su valor continuo
+; Función para obtener el valor discreto de una característica
+; a partir de su valor continuo
 
 (deffunction ModuloPregunta::obtenerValorNumerico (?caracteristica ?valor)
     (switch ?caracteristica
@@ -116,9 +139,8 @@
     )
 )
 
-
-;;;;;;;;;;;;;;;; Funciones para comprobar si el valor obtenido en la pregunta
-;;;;;;;;;;;;;;;; es correcto respecto del rango continuo de la característica
+; Función para comprobar si el valor obtenido en la pregunta
+; es correcto respecto del rango continuo de la característica
 
 (deffunction ModuloPregunta::perteneceAlRangoContinuo (?palabra ?min ?max)
     (bind ?salida nil)
@@ -129,8 +151,8 @@
     ?salida
 )
 
-;; Primero se comprueba si está en su rango continuo, y si lo está se obtiene
-;; el valor discreto a partir del valor continuo obtenido y se devuelve
+; Primero se comprueba si está en su rango continuo, y si lo está se obtiene
+; el valor discreto a partir del valor continuo obtenido y se devuelve
 
 (deffunction ModuloPregunta::obtenerValorDiscretoCarac (?caracteristica ?min ?max ?mensaje)
     (bind ?valor "Repetir")
@@ -150,7 +172,7 @@
 )
 
 
-;;;;;;;;;;;;;;;; Reglas para obtener la frase del resto de preguntas
+; Reglas para obtener la frase del resto de preguntas
 
 (deffunction ModuloPregunta::obtenerFrasePreguntaResto(?intro ?pregunta $?frases)
     (bind ?frase (nth$ (random 1 (length$ ?frases)) ?frases))
@@ -159,9 +181,8 @@
     (printout t ?frase)
 )
 
-
-;;;;;;;;;;;;;;;; Función para comprobar si el valor obtenido en la pregunta
-;;;;;;;;;;;;;;;; es correcto respecto del rango discreto de la característica
+; Función para comprobar si el valor obtenido en la pregunta
+; es correcto respecto del rango discreto de la característica
 
 (deffunction ModuloPregunta::perteneceAlRangoDiscreto (?palabra $?rango)
     (bind ?valor "Repetir")
@@ -187,12 +208,9 @@
 )
 
 
-
-
-
-;;;;;;;;;;;;;;;; Función para obtener la introducción a la frase en el caso 
-;;;;;;;;;;;;;;;; de que se haya respodido de forma parcial a una pregunta, es
-;;;;;;;;;;;;;;;; decir, ha respondido NSNC
+; Función para obtener la introducción a la frase en el caso 
+; de que se haya respodido de forma parcial a una pregunta, es
+; decir, ha respondido NSNC
 
 (deffunction ModuloPregunta::obtener_nombre_caracteristica (?caracteristica)
     (switch ?caracteristica
@@ -226,7 +244,8 @@
     )
 )
 
-;;;;;;;;;;;;;;;; Hechos para representar los rangos discretos de las características
+
+; Hechos para representar los rangos discretos de las características
 
 (deffacts ModuloPregunta::Rangos_discretos
 (Rango Calificacion_media "Alta" "Media" "Baja")
@@ -240,15 +259,16 @@
 (Rango Nivel_abstraccion "Alto" "Medio" "Bajo")
 )
 
-;;;;;;;;;;;;;;;; Hechos para representar los rangos continuos de las características
-;;;;;;;;;;;;;;;; cuyo valor recibido por la entrada sea continuo
+; Hechos para representar los rangos continuos de las características
+; cuyo valor recibido por la entrada sea continuo
 
 (deffacts ModuloPregunta::Rangos_numericos
 (RangoNumerico Calificacion_media 5 10)
 )
 
-;; En el caso de ser la primera pregunta y ser sobre una característica de la que se
-;; obtiene un valor continuo
+
+; En el caso de ser la primera pregunta y ser sobre una característica de la que se
+; obtiene un valor continuo
 
 (defrule ModuloPregunta::pregunta_inicio_continuo
 (Anterior Ninguno)
@@ -267,8 +287,8 @@
 (retract ?X ?Y)
 )
 
-;; En el caso de ser la primera pregunta y ser sobre una característica de la que se
-;; obtiene un valor discreto
+; En el caso de ser la primera pregunta y ser sobre una característica de la que se
+; obtiene un valor discreto
 
 (defrule ModuloPregunta::pregunta_inicio_discreto
 (Anterior Ninguno)
@@ -288,11 +308,11 @@
 (retract ?X ?Y)
 )
 
-;; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
-;; obtiene un valor continuo
+; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
+; obtiene un valor continuo
 
-;; Hay dos reglas, una para manejar los casos en que la pregunta del requisito de la pregunta
-;; que vamos a realizar, fue respondida con NSNC
+; Hay dos reglas, una para manejar los casos en que la respuesta a la anterior pregunta
+; fue NSNC y otra para los casos en que fue respondida con uno de los valores de la característica
 
 (defrule ModuloPregunta::pregunta_resto_continuo_nil
 (Anterior ?nombre)
@@ -334,11 +354,12 @@
 (retract ?X ?Y)
 )
 
-;; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
-;; obtiene un valor discreto
 
-;; Hay dos reglas, una para manejar los casos en que la pregunta del requisito de la pregunta
-;; que vamos a realizar, fue respondida con NSNC
+; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
+; obtiene un valor discreto
+
+; Hay dos reglas, una para manejar los casos en que la respuesta a la anterior pregunta
+; fue NSNC y otra para los casos en que fue respondida con uno de los valores de la característica
 
 (defrule ModuloPregunta::pregunta_resto_discreto_nil
 (Anterior ?nombre)
@@ -383,11 +404,11 @@
 )
 
 
-;;;;;;;;;;;;;;;; Regla para volver a preguntar
+; Regla para volver a preguntar
 
-;; Se vuelve a realizar la pregunta si el valor obtenido no está contenido
-;; en el rango de la característica. El rango no se tiene en cuenta si se
-;; responde NSNC.
+; Se vuelve a realizar la pregunta si el valor obtenido no está contenido
+; en el rango de la característica. El rango no se tiene en cuenta si se
+; responde NSNC.
 
 (defrule ModuloPregunta::volver_a_preguntar
 (declare (salience 9999))
@@ -401,6 +422,9 @@
 (retract ?X ?Y)
 )
 
+
+; Regla para actualizar la última pregunta que se realizó
+
 (defrule gestionarRespuesta
 (declare (salience 1))
 ?X <- (Anterior ?nombre)
@@ -413,6 +437,9 @@
 (retract ?X)
 )
 
+
+; Regla para pasar al siguiente módulo
+
 (defrule ModuloPregunta::siguienteModulo
 (not (exists (Pregunta ?)))
 =>
@@ -420,17 +447,25 @@
 )
 
 
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+; --------------------------------------------------------------------------- ;
+; --------------------------- Modulo SBC de Mario --------------------------- ;
+; --------------------------------------------------------------------------- ;
 
 (defmodule ModuloSBCMario
     (import ModuloPregunta deftemplate Respuesta)
     (export deftemplate RecomendacionMario)
 )
 
+; Template para las recomendaciones de Mario
 (deftemplate RecomendacionMario
     (field rama (default ?NONE))
     (field motivo (default ?NONE))
 )
+
+
+; Regla para recibir las respuestas a las preguntas y obtener el valor de
+; cada característica
 
 (defrule ModuloSBCMario::recibirRespuesta
 (declare (salience 2))
@@ -440,7 +475,7 @@
 )
 
 
-;;;;;;;;;;;;;;;; Hechos para representar las ramas a sugerir
+; Hechos para representar las ramas a sugerir
 
 (deffacts ModuloSBCMario::Ramas
     (Rama Computación_y_Sistemas_Inteligentes)
@@ -451,7 +486,7 @@
 )
 
 
-;;;;;;;;;;; Características a usar en el asesoramiento
+;;;;; Características a usar en el asesoramiento
 
 ;; El sistema utiliza las siguientes características:
 ;;
@@ -486,7 +521,7 @@
 
 
 ;;;;;;;;;;;;;;;; Hechos para representar las distintas sugerencias, formadas
-;;;;;;;;;;;;;;;; por las combinación de distintos valores de las característica.
+;;;;;;;;;;;;;;;; por la combinación de distintos valores de las característica.
 
 ;; Cada hecho no debe contener el valor de todas las características, se puede
 ;; dejar sin valor, lo que significa que no se tiene en cuenta en la aceptación de esa sugerencia.
@@ -496,7 +531,7 @@
 ;; identificador igual a ?id.
 ;;
 ;; Además contiene un hecho (Sugerencia ?id Rama ?valor_rama), que representa la rama que se sugiere
-;; es en la sugerencia con identificador igual a ?id.
+;; en la sugerencia con identificador igual a ?id.
 
 (deffacts ModuloSBCMario::Sugerencias
     (Sugerencia 1 Ambito_trabajo "Docencia")
@@ -794,6 +829,9 @@
     (Sugerencia 46 Rama Ingeniería_del_Software)
 )
 
+
+; Regla para añadir inicializar la lista de motivos de cada sugerencia
+
 (defrule ModuloSBCMario::aniadir_motivos
 (declare (salience 2))
 (Sugerencia ?id Rama ?)
@@ -801,11 +839,12 @@
 (assert (Sugerencia ?id Motivos))
 )
 
-;;;;;;;;;;;;;;;; Regla para añadir el contador a cada sugerencia
 
-;; Este contador aumenta cada vez que se obtiene un valor de una característica que coincide
-;; con el valor de esa característica en la sugerencia, o cuando se obtiene se responde NSNC
-;; al valor de la característica.
+; Regla para añadir el contador a cada sugerencia
+
+; Este contador aumenta cada vez que se obtiene un valor de una característica que coincide
+; con el valor de esa característica en la sugerencia, o cuando se obtiene se responde NSNC
+; al valor de la característica.
 
 (defrule ModuloSBCMario::aniadir_contador
 (declare (salience 1))
@@ -814,10 +853,8 @@
 (assert (Sugerencia ?id Contador 0))
 )
 
-;;;;;;;;;;;;;;;; Regla para aumentar el contador de una sugerencia
 
-;; Se activa cuando se cumplen se obtiene como resultado de la pregunta
-;; nil ó el valor que se indica en la sugerencia para esa característica
+; Reglas para aumentar el contador de una sugerencia
 
 (defrule ModuloSBCMario::aumentar_contador_nil
 (declare (salience 1))
@@ -827,6 +864,18 @@
 =>
 (assert (IncreContador ?id))
 )
+
+(defrule ModuloSBCMario::aumentar_contador
+(declare (salience 1))
+(Caracteristica ?caracteristica ?valor)
+(Sugerencia ?id ?caracteristica ?valorSuge)
+(test (eq ?valor ?valorSuge))
+=>
+(assert (IncreContador ?id ?caracteristica ?valor))
+)
+
+
+; Regla para generar un motivo en relación a una característica y su valor
 
 (deffunction crear_motivo (?caracteristica ?valor)
     (bind ?frase "")
@@ -947,14 +996,6 @@
     return ?frase
 )
 
-(defrule ModuloSBCMario::aumentar_contador
-(declare (salience 1))
-(Caracteristica ?caracteristica ?valor)
-(Sugerencia ?id ?caracteristica ?valorSuge)
-(test (eq ?valor ?valorSuge))
-=>
-(assert (IncreContador ?id ?caracteristica ?valor))
-)
 
 ;; El incremento se hace en otra regla, para no entrar en un bucle infinito
 
@@ -966,6 +1007,9 @@
 (retract ?X ?Y)
 (assert (Sugerencia ?id Contador (+ ?num 1)))
 )
+
+; Cuando se incrementa el contador cuando el valor de la característica es distinto
+; de nil, además de aumentar el contador se añade el motivo del incremento del contador
 
 (defrule ModuloSBCMario::incremento_contador
 (declare (salience 1))
@@ -980,13 +1024,13 @@
 )
 
 
-;;;;;;;;;;;;;;;; Regla para añadir el número necesario de características de cada sugerencia
+; Regla para añadir el número necesario de características de cada sugerencia
 
-;; El número necesario de características es igual al número de hechos (Sugerencia ?id ?caracteristica ?valor)
-;; que tiene una sugerencia. Este hecho se utiliza para comprobar cuando se han cumplido todos los
-;; requisitos de una sugerencia, es decir, cuando el contador tenga el mismo valor que este hecho, quiere
-;; decir que todos los valores obtenidos de las características son iguales en esta sugerencia, por lo que es
-;; aceptada como sugerencia.
+; El número necesario de características es igual al número de hechos (Sugerencia ?id ?caracteristica ?valor)
+; que tiene una sugerencia. Este hecho se utiliza para comprobar cuando se han cumplido todos los
+; requisitos de una sugerencia, es decir, cuando el contador tenga el mismo valor que este hecho, quiere
+; decir que todos los valores obtenidos de las características son iguales en esta sugerencia, por lo que es
+; aceptada como sugerencia.
 
 (defrule ModuloSBCMario::aniadir_necesario
 (declare (salience 2))
@@ -995,9 +1039,10 @@
 (assert (Sugerencia ?id Necesario 0))
 )
 
-;;;;;;;;;;;;;;;; Regla para aumentar el contador de una sugerencia
 
-;; Se activa por cada valor de características indicado en la sugerencia
+; Regla para aumentar el contador de una sugerencia
+
+; Se activa por cada valor de características indicado en la sugerencia
 
 (defrule ModuloSBCMario::aumentar_necesario
 (declare (salience 2))
@@ -1010,7 +1055,7 @@
 (assert (IncreNecesario ?id))
 )
 
-;; El incremento se hace en otra regla, para no entrar en un bucle infinito
+; El incremento se hace en otra regla, para no entrar en un bucle infinito
 
 (defrule ModuloSBCMario::incremento_necesario
 (declare (salience 2))
@@ -1021,6 +1066,9 @@
 (assert (Sugerencia ?id Necesario (+ ?num 1)))
 )
 
+
+; Regla para aceptar una sugerencia cuando el número del contador y del contador necesario son iguales
+
 (defrule ModuloSBCMario::aceptar_sugerencia
 (Sugerencia ?id Contador ?num1)
 (Sugerencia ?id Necesario ?num2)
@@ -1028,6 +1076,9 @@
 =>
 (assert (CrearRecomendacion ?id))
 )
+
+
+; Función para generar la recomendación de una sugerencia a partir de sus motivos
 
 (deffunction crear_recomendacion_sugerencia ($?motivos)
     (bind ?mensaje "")
@@ -1048,6 +1099,9 @@
     return ?mensaje
 )
 
+
+; Reglas para generar las recomendaciones de las sugerencias aceptadas
+
 (defrule ModuloSBCMario::crear_recomendacion
 ?X <- (CrearRecomendacion ?id)
 (Sugerencia ?id Motivos $?motivos)
@@ -1058,6 +1112,9 @@
 (retract ?X)
 )
 
+
+; Regla para pasar al siguiente módulo
+
 (defrule ModuloSBCMario::siguienteModulo
 (declare (salience -1))
 =>
@@ -1065,9 +1122,12 @@
 )
 
 
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+; --------------------------------------------------------------------------- ;
+; -------------------------- Modulo SBC de Sergio --------------------------- ;
+; --------------------------------------------------------------------------- ;
 
+; Define el modulo
 (defmodule ModuloSBCSergio
     (import ModuloPregunta deftemplate Respuesta)
     (export deftemplate RecomendacionSergio)
@@ -1078,12 +1138,16 @@
     (field motivo (default ?NONE))
 )
 
+; Convierte el template que exporta ModuloRespuesta a los hechos con los que
+; trabaja el modulo
 (defrule ModuloSBCSergio::recibirRespuesta
-(declare (salience -10))
+(declare (salience 10))
     (Respuesta (caracteristica ?caracteristica)(valor ?valor))
 =>
     (assert (Caracteristica ?caracteristica ?valor))
 )
+
+; Reglas para recomendar una rama
 
 (defrule ModuloSBCSergio::NotaAltaAsignaturasTeoricas
     (Caracteristica Calificacion_media "Alta")
@@ -1230,6 +1294,8 @@
     ))
 )
 
+; Una vez tiene una respuesta, llama a ModuloRecomendacion para que muestre las
+; recomendaciones
 (defrule ModuloSBCSergio::tieneRespuesta
 (declare (salience 100))
     (RecomendacionSergio (rama ?)(motivo ?))
@@ -1239,16 +1305,16 @@
 
 
 
-
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
+; --------------------------------------------------------------------------- ;
+; ------------------------- Modulo de Recomendacion ------------------------- ;
+; --------------------------------------------------------------------------- ;
 
 (defmodule ModuloRecomendacion
     (import ModuloSBCSergio deftemplate RecomendacionSergio)
     (import ModuloSBCMario deftemplate RecomendacionMario)
 )
 
-;; Convierte a texto bonito
+; Asignar a cada rama un nombre mejor formateado
 (deffacts Ramas
     (Rama Computación_y_Sistemas_Inteligentes "Computacion y Sistemas Inteligentes")
     (Rama Ingeniería_del_Software "Ingenieria del Software")
@@ -1257,7 +1323,8 @@
     (Rama Tecnologías_de_la_Información "Tecnologias de la informacion")
 )
 
-;; Si se recomienda la misma rama, se unifica la respuesta y los motivos
+; Si ambos subsistemas recomiendan la misma rama, se unifica la respuesta y los
+; motivos
 (defrule ModuloRecomendacion::coincideRecomendacion
 (declare (salience 1))
     ?X <- (RecomendacionSergio (rama ?r)(motivo ?motivoS))
@@ -1269,7 +1336,8 @@
     (retract ?X ?Y)
 )
 
-;; Si las ramas no coinciden, cada subsistema da su propia respuesta
+; Si las ramas no coinciden, cada subsistema da su propia respuesta
+; Genera el mensaje del subsistema de Sergio
 (defrule ModuloRecomendacion::recomendacionSergio
     (RecomendacionSergio (rama ?r)(motivo ?motivo))
     (Rama ?r ?rama)
@@ -1278,6 +1346,7 @@
     (assert (Recomendacion ?mensaje))
 )
 
+; Genera el mensaje del subsistema de Mario
 (defrule ModuloRecomendacion::recomendacionMario
     (RecomendacionMario (rama ?r)(motivo ?motivo))
     (Rama ?r ?rama)
@@ -1286,73 +1355,9 @@
     (assert (Recomendacion ?mensaje))
 )
 
+; Muestra ambas recomendaciones
 (defrule ModuloRecomendacion::recomendacion
     (Recomendacion ?mensaje)
 =>
     (printout t ?mensaje crlf)
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;##############################################################################################;
-;##############################################################################################;
-;##############################################################################################;
-;##############################################################################################;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
