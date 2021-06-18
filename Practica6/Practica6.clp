@@ -1,5 +1,6 @@
-;;;;;;; ASESORAR RAMA DE INGENIERIA INFORMATICA A UN ESTUDIANTE ;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;; ASESORAR RAMA DE INGENIERIA INFORMATICA A UN ESTUDIANTE Y ;;;;;;;
+;;;;;;; ACONSEJAR ASIGNATURA A UN ESTUDIANTE                      ;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defrule iniciarProceso
 (initial-fact)
@@ -8,13 +9,19 @@
 )
 
 
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+; ---------------------------------------------------------------------------------- ;
+; --------------------------- Modulo de Elección de modo --------------------------- ;
+; ---------------------------------------------------------------------------------- ;
 
 (defmodule ModuloEleccionModo)
 
 (deffacts ModuloEleccionModo::HechosIniciales
     (PreguntarModo)
 )
+
+
+; Regla para seleccionar el modo que se quiere ejecutar
 
 (defrule ModuloEleccionModo::eleccionModo
 ?X <- (PreguntarModo)
@@ -40,6 +47,9 @@
 (retract ?X)
 )
 
+
+; Regla para mostar información sobre los distintos modos
+
 (defrule ModuloEleccionModo::mostrarInfo
 ?X <- (MostrarInfo)
 =>
@@ -53,6 +63,9 @@
 (retract ?X)
 )
 
+
+; Regla para volver a preguntar sobre la selección del modo
+
 (defrule ModuloEleccionModo::volverAPregunta
 ?X <- (volver_a_preguntar)
 =>
@@ -60,6 +73,9 @@
 (assert (PreguntarModo))
 (retract ?X)
 )
+
+
+; Regla para pasar al siguiente módulo
 
 (defrule ModuloEleccionModo::siguienteModulo
 (Modo ?modo)
@@ -76,16 +92,25 @@
 )
 
 
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+; ----------------------------------------------------------------------------------------- ;
+; --------------------------- Modulo de Preguntas para asesorar --------------------------- ;
+; ----------------------------------------------------------------------------------------- ;
 
 (defmodule ModuloPreguntaAsesorar 
     (export deftemplate Respuesta)
 )
 
+; Template que va a estar disponible para los otros modulos
+; Template para las respuestas a las preguntas
 (deftemplate Respuesta
     (field caracteristica (default ?NONE))
     (field valor (default ?NONE))
 )
+
+
+; Hechos iniciales que guían el proceso de las preguntas, haciendo
+; que sean un poco personalizadas con los hechos Anterior, para que en
+; la pregunta 2 se haga referencia a lo que se respondió en la pregunta 1
 
 (deffacts ModuloPreguntaAsesorar::HechosIniciales
     (Ultimo Ninguno)
@@ -101,12 +126,12 @@
     (Pregunta Nivel_abstraccion)
 )
 
-;;;;;;;;;;;;;;;; Hechos para representar las frases utilizadas en la comunicación
-;;;;;;;;;;;;;;;; con el estudiante
+
+; Hechos para representar las frases utilizadas en la comunicación con el estudiante
 
 ;; Estas frases son las introductorias a la pregunta. Se emprezará la introducción a la pregunta
 ;; de diferente manera dependiendo de si es la primera pregunta o no, y de el valor obtenido 
-;; en la ultima pregunta
+;; en la última pregunta
 
 (deffacts ModuloPreguntaAsesorar::Frases
     (Frase Inicio "En primer lugar" "Bien vamos a comenzar")
@@ -136,7 +161,7 @@
     (Frase Nivel_abstraccion "Bajo" "tu nivel de abstraccion es bajo")
 )
 
-;; Estas frases son las preguntas de cada caractarística.
+; Estas frases son las preguntas de cada caractarística.
 
 (deffacts ModuloPreguntaAsesorar::Preguntas
     (FrasePregunta Calificacion_media "que nota media tienes?")
@@ -151,10 +176,12 @@
 )
 
 
+; ------------------------------------- ;
+; ------------- Preguntas ------------- ;
+; ------------------------------------- ;
 
-;;;;;;;;;;;;;;;; Preguntas
 
-;;;;;;;;;;;;;;;; Reglas para obtener la frase de la primera pregunta
+; Regla para obtener la frase de la primera pregunta
 
 (deffunction ModuloPreguntaAsesorar::obtenerFrasePreguntaInicio(?intro $?frases)
     (bind ?frase (nth$ (random 1 (length$ ?frases)) ?frases))
@@ -163,8 +190,8 @@
     return ?frase
 )
 
-;;;;;;;;;;;;;;;; Función para obtener el valor discreto de una característica
-;;;;;;;;;;;;;;;; a partir de su valor continuo
+; Función para obtener el valor discreto de una característica
+; a partir de su valor continuo
 
 (deffunction ModuloPreguntaAsesorar::obtenerValorNumerico (?caracteristica ?valor)
     (switch ?caracteristica
@@ -183,8 +210,8 @@
 )
 
 
-;;;;;;;;;;;;;;;; Funciones para comprobar si el valor obtenido en la pregunta
-;;;;;;;;;;;;;;;; es correcto respecto del rango continuo de la característica
+; Función para comprobar si el valor obtenido en la pregunta
+; es correcto respecto del rango continuo de la característica
 
 (deffunction ModuloPreguntaAsesorar::perteneceAlRangoContinuo (?palabra ?min ?max)
     (bind ?salida nil)
@@ -195,8 +222,8 @@
     ?salida
 )
 
-;; Primero se comprueba si está en su rango continuo, y si lo está se obtiene
-;; el valor discreto a partir del valor continuo obtenido y se devuelve
+; Primero se comprueba si está en su rango continuo, y si lo está se obtiene
+; el valor discreto a partir del valor continuo obtenido y se devuelve
 
 (deffunction ModuloPreguntaAsesorar::obtenerValorDiscretoCarac (?caracteristica ?min ?max ?mensaje)
     (bind ?valor "Repetir")
@@ -216,7 +243,7 @@
 )
 
 
-;;;;;;;;;;;;;;;; Reglas para obtener la frase del resto de preguntas
+; Reglas para obtener la frase del resto de preguntas
 
 (deffunction ModuloPreguntaAsesorar::obtenerFrasePreguntaResto(?intro ?pregunta $?frases)
     (bind ?frase (nth$ (random 1 (length$ ?frases)) ?frases))
@@ -226,8 +253,8 @@
 )
 
 
-;;;;;;;;;;;;;;;; Función para comprobar si el valor obtenido en la pregunta
-;;;;;;;;;;;;;;;; es correcto respecto del rango discreto de la característica
+; Función para comprobar si el valor obtenido en la pregunta
+; es correcto respecto del rango discreto de la característica
 
 (deffunction ModuloPreguntaAsesorar::perteneceAlRangoDiscreto (?palabra $?rango)
     (bind ?valor "Repetir")
@@ -253,12 +280,9 @@
 )
 
 
-
-
-
-;;;;;;;;;;;;;;;; Función para obtener la introducción a la frase en el caso 
-;;;;;;;;;;;;;;;; de que se haya respodido de forma parcial a una pregunta, es
-;;;;;;;;;;;;;;;; decir, ha respondido NSNC
+; Función para obtener la introducción a la frase en el caso 
+; de que se haya respodido de forma parcial a una pregunta, es
+; decir, ha respondido NSNC
 
 (deffunction ModuloPreguntaAsesorar::obtener_nombre_caracteristica (?caracteristica)
     (switch ?caracteristica
@@ -292,7 +316,8 @@
     )
 )
 
-;;;;;;;;;;;;;;;; Hechos para representar los rangos discretos de las características
+
+; Hechos para representar los rangos discretos de las características
 
 (deffacts ModuloPreguntaAsesorar::Rangos_discretos
 (Rango Calificacion_media "Alta" "Media" "Baja")
@@ -306,15 +331,16 @@
 (Rango Nivel_abstraccion "Alto" "Medio" "Bajo")
 )
 
-;;;;;;;;;;;;;;;; Hechos para representar los rangos continuos de las características
-;;;;;;;;;;;;;;;; cuyo valor recibido por la entrada sea continuo
+; Hechos para representar los rangos continuos de las características
+; cuyo valor recibido por la entrada sea continuo
 
 (deffacts ModuloPreguntaAsesorar::Rangos_numericos
 (RangoNumerico Calificacion_media 5 10)
 )
 
-;; En el caso de ser la primera pregunta y ser sobre una característica de la que se
-;; obtiene un valor continuo
+
+; En el caso de ser la primera pregunta y ser sobre una característica de la que se
+; obtiene un valor continuo
 
 (defrule ModuloPreguntaAsesorar::pregunta_inicio_continuo
 (Anterior Ninguno)
@@ -333,8 +359,9 @@
 (retract ?X ?Y)
 )
 
-;; En el caso de ser la primera pregunta y ser sobre una característica de la que se
-;; obtiene un valor discreto
+
+; En el caso de ser la primera pregunta y ser sobre una característica de la que se
+; obtiene un valor discreto
 
 (defrule ModuloPreguntaAsesorar::pregunta_inicio_discreto
 (Anterior Ninguno)
@@ -354,11 +381,12 @@
 (retract ?X ?Y)
 )
 
-;; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
-;; obtiene un valor continuo
 
-;; Hay dos reglas, una para manejar los casos en que la pregunta del requisito de la pregunta
-;; que vamos a realizar, fue respondida con NSNC
+; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
+; obtiene un valor continuo
+
+; Hay dos reglas, una para manejar los casos en que la respuesta a la anterior pregunta
+; fue NSNC y otra para los casos en que fue respondida con uno de los valores de la característica
 
 (defrule ModuloPreguntaAsesorar::pregunta_resto_continuo_nil
 (Anterior ?nombre)
@@ -400,11 +428,11 @@
 (retract ?X ?Y)
 )
 
-;; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
-;; obtiene un valor discreto
+; En el caso de no ser la primera pregunta y ser sobre una característica de la que se
+; obtiene un valor discreto
 
-;; Hay dos reglas, una para manejar los casos en que la pregunta del requisito de la pregunta
-;; que vamos a realizar, fue respondida con NSNC
+; Hay dos reglas, una para manejar los casos en que la respuesta a la anterior pregunta
+; fue NSNC y otra para los casos en que fue respondida con uno de los valores de la característica
 
 (defrule ModuloPreguntaAsesorar::pregunta_resto_discreto_nil
 (Anterior ?nombre)
@@ -449,11 +477,11 @@
 )
 
 
-;;;;;;;;;;;;;;;; Regla para volver a preguntar
+; Regla para volver a preguntar
 
-;; Se vuelve a realizar la pregunta si el valor obtenido no está contenido
-;; en el rango de la característica. El rango no se tiene en cuenta si se
-;; responde NSNC.
+; Se vuelve a realizar la pregunta si el valor obtenido no está contenido
+; en el rango de la característica. El rango no se tiene en cuenta si se
+; responde NSNC.
 
 (defrule ModuloPreguntaAsesorar::volver_a_preguntar
 (declare (salience 9999))
@@ -467,6 +495,9 @@
 (retract ?X ?Y)
 )
 
+
+; Regla para actualizar la última pregunta que se realizó
+
 (defrule gestionarRespuesta
 (declare (salience 1))
 ?X <- (Anterior ?nombre)
@@ -479,6 +510,9 @@
 (retract ?X)
 )
 
+
+; Regla para pasar al siguiente módulo
+
 (defrule ModuloPreguntaAsesorar::siguienteModulo
 (not (exists (Pregunta ?)))
 =>
@@ -486,17 +520,25 @@
 )
 
 
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+; --------------------------------------------------------------------------- ;
+; --------------------------- Modulo SBC de Mario --------------------------- ;
+; --------------------------------------------------------------------------- ;
 
 (defmodule ModuloSBCMario
     (import ModuloPreguntaAsesorar deftemplate Respuesta)
     (export deftemplate RecomendacionMario)
 )
 
+; Template para las recomendaciones de Mario
 (deftemplate RecomendacionMario
     (field rama (default ?NONE))
     (field motivo (default ?NONE))
 )
+
+
+; Regla para recibir las respuestas a las preguntas y obtener el valor de
+; cada característica
 
 (defrule ModuloSBCMario::recibirRespuesta
 (declare (salience 2))
@@ -506,7 +548,7 @@
 )
 
 
-;;;;;;;;;;;;;;;; Hechos para representar las ramas a sugerir
+; Hechos para representar las ramas a sugerir
 
 (deffacts ModuloSBCMario::Ramas
     (Rama Computación_y_Sistemas_Inteligentes)
@@ -860,6 +902,9 @@
     (Sugerencia 46 Rama Ingeniería_del_Software)
 )
 
+
+; Regla para añadir inicializar la lista de motivos de cada sugerencia
+
 (defrule ModuloSBCMario::aniadir_motivos
 (declare (salience 2))
 (Sugerencia ?id Rama ?)
@@ -867,11 +912,12 @@
 (assert (Sugerencia ?id Motivos))
 )
 
-;;;;;;;;;;;;;;;; Regla para añadir el contador a cada sugerencia
 
-;; Este contador aumenta cada vez que se obtiene un valor de una característica que coincide
-;; con el valor de esa característica en la sugerencia, o cuando se obtiene se responde NSNC
-;; al valor de la característica.
+; Regla para añadir el contador a cada sugerencia
+
+; Este contador aumenta cada vez que se obtiene un valor de una característica que coincide
+; con el valor de esa característica en la sugerencia, o cuando se obtiene se responde NSNC
+; al valor de la característica.
 
 (defrule ModuloSBCMario::aniadir_contador
 (declare (salience 1))
@@ -880,10 +926,8 @@
 (assert (Sugerencia ?id Contador 0))
 )
 
-;;;;;;;;;;;;;;;; Regla para aumentar el contador de una sugerencia
 
-;; Se activa cuando se cumplen se obtiene como resultado de la pregunta
-;; nil ó el valor que se indica en la sugerencia para esa característica
+; Reglas para aumentar el contador de una sugerencia
 
 (defrule ModuloSBCMario::aumentar_contador_nil
 (declare (salience 1))
@@ -893,6 +937,18 @@
 =>
 (assert (IncreContador ?id))
 )
+
+(defrule ModuloSBCMario::aumentar_contador
+(declare (salience 1))
+(Caracteristica ?caracteristica ?valor)
+(Sugerencia ?id ?caracteristica ?valorSuge)
+(test (eq ?valor ?valorSuge))
+=>
+(assert (IncreContador ?id ?caracteristica ?valor))
+)
+
+
+; Regla para generar un motivo en relación a una característica y su valor
 
 (deffunction crear_motivo (?caracteristica ?valor)
     (bind ?frase "")
@@ -1013,16 +1069,8 @@
     return ?frase
 )
 
-(defrule ModuloSBCMario::aumentar_contador
-(declare (salience 1))
-(Caracteristica ?caracteristica ?valor)
-(Sugerencia ?id ?caracteristica ?valorSuge)
-(test (eq ?valor ?valorSuge))
-=>
-(assert (IncreContador ?id ?caracteristica ?valor))
-)
 
-;; El incremento se hace en otra regla, para no entrar en un bucle infinito
+; El incremento se hace en otra regla, para no entrar en un bucle infinito
 
 (defrule ModuloSBCMario::incremento_contador_nil
 (declare (salience 1))
@@ -1032,6 +1080,10 @@
 (retract ?X ?Y)
 (assert (Sugerencia ?id Contador (+ ?num 1)))
 )
+
+
+; Cuando se incrementa el contador cuando el valor de la característica es distinto
+; de nil, además de aumentar el contador se añade el motivo del incremento del contador
 
 (defrule ModuloSBCMario::incremento_contador
 (declare (salience 1))
@@ -1046,13 +1098,13 @@
 )
 
 
-;;;;;;;;;;;;;;;; Regla para añadir el número necesario de características de cada sugerencia
+; Regla para añadir el número necesario de características de cada sugerencia
 
-;; El número necesario de características es igual al número de hechos (Sugerencia ?id ?caracteristica ?valor)
-;; que tiene una sugerencia. Este hecho se utiliza para comprobar cuando se han cumplido todos los
-;; requisitos de una sugerencia, es decir, cuando el contador tenga el mismo valor que este hecho, quiere
-;; decir que todos los valores obtenidos de las características son iguales en esta sugerencia, por lo que es
-;; aceptada como sugerencia.
+; El número necesario de características es igual al número de hechos (Sugerencia ?id ?caracteristica ?valor)
+; que tiene una sugerencia. Este hecho se utiliza para comprobar cuando se han cumplido todos los
+; requisitos de una sugerencia, es decir, cuando el contador tenga el mismo valor que este hecho, quiere
+; decir que todos los valores obtenidos de las características son iguales en esta sugerencia, por lo que es
+; aceptada como sugerencia.
 
 (defrule ModuloSBCMario::aniadir_necesario
 (declare (salience 2))
@@ -1061,9 +1113,10 @@
 (assert (Sugerencia ?id Necesario 0))
 )
 
-;;;;;;;;;;;;;;;; Regla para aumentar el contador de una sugerencia
 
-;; Se activa por cada valor de características indicado en la sugerencia
+; Regla para aumentar el contador de una sugerencia
+
+; Se activa por cada valor de características indicado en la sugerencia
 
 (defrule ModuloSBCMario::aumentar_necesario
 (declare (salience 2))
@@ -1076,7 +1129,7 @@
 (assert (IncreNecesario ?id))
 )
 
-;; El incremento se hace en otra regla, para no entrar en un bucle infinito
+; El incremento se hace en otra regla, para no entrar en un bucle infinito
 
 (defrule ModuloSBCMario::incremento_necesario
 (declare (salience 2))
@@ -1087,6 +1140,9 @@
 (assert (Sugerencia ?id Necesario (+ ?num 1)))
 )
 
+
+; Regla para aceptar una sugerencia cuando el número del contador y del contador necesario son iguales
+
 (defrule ModuloSBCMario::aceptar_sugerencia
 (Sugerencia ?id Contador ?num1)
 (Sugerencia ?id Necesario ?num2)
@@ -1094,6 +1150,9 @@
 =>
 (assert (CrearRecomendacion ?id))
 )
+
+
+; Función para generar la recomendación de una sugerencia a partir de sus motivos
 
 (deffunction crear_recomendacion_sugerencia ($?motivos)
     (bind ?mensaje "")
@@ -1114,6 +1173,9 @@
     return ?mensaje
 )
 
+
+; Reglas para generar las recomendaciones de las sugerencias aceptadas
+
 (defrule ModuloSBCMario::crear_recomendacion
 ?X <- (CrearRecomendacion ?id)
 (Sugerencia ?id Motivos $?motivos)
@@ -1124,6 +1186,9 @@
 (retract ?X)
 )
 
+
+; Regla para pasar al siguiente módulo
+
 (defrule ModuloSBCMario::siguienteModulo
 (declare (salience -1))
 =>
@@ -1131,14 +1196,16 @@
 )
 
 
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+; ----------------------------------------------------------------------------------------- ;
+; ------------------------- Modulo de Recomendacion para asesorar ------------------------- ;
+; ----------------------------------------------------------------------------------------- ;
 
 (defmodule ModuloRecomendacion
     (import ModuloSBCMario deftemplate RecomendacionMario)
 )
 
-;; Convierte a texto bonito
+; Asignar a cada rama un nombre mejor formateado
 (deffacts Ramas
     (Rama Computación_y_Sistemas_Inteligentes "Computacion y Sistemas Inteligentes")
     (Rama Ingeniería_del_Software "Ingenieria del Software")
@@ -1146,6 +1213,9 @@
     (Rama Sistemas_de_Información "Sistemas de la Informacion")
     (Rama Tecnologías_de_la_Información "Tecnologias de la informacion")
 )
+
+
+; Regla para generar las distintas recomendaciones
 
 (defrule ModuloRecomendacion::recomendacionMario
     (RecomendacionMario (rama ?r)(motivo ?motivo))
@@ -1155,6 +1225,9 @@
     (assert (Recomendacion ?mensaje))
 )
 
+
+; Regla para visualizar las distintas recomendaciones
+
 (defrule ModuloRecomendacion::recomendacion
     (Recomendacion ?mensaje)
 =>
@@ -1162,43 +1235,52 @@
 )
 
 
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+; ------------------------------------------------------------------------------------------ ;
+; --------------------------- Modulo de Preguntas para aconsejar --------------------------- ;
+; ------------------------------------------------------------------------------------------ ;
 
 (defmodule ModuloPreguntaAconsejar
     (export deftemplate FactorCerteza)
     (export deftemplate Eleccion)
+    (export deftemplate ConvertirAsignatura)
 )
 
+; Template para los factores de certeza de las evidencias
 (deftemplate FactorCerteza
     (field evidencia (default ?NONE))
     (field valor (default ?NONE))
     (field certeza (default ?NONE))
 )
 
+; Template para las distintas elecciones de asignaturas
 (deftemplate Eleccion
     (field numero (default ?NONE))
     (field asignatura (default ?NONE))
 )
 
-(deffacts ModuloPreguntaAconsejar::Asignaturas
-    (Asignatura Administración_de_bases_de_datos)
-    (Asignatura Aprendizaje_automatico)
-    (Asignatura Arquitectura_de_sistemas)
-    (Asignatura Desarrollo_de_sistemas_distribuidos)
-    (Asignatura Ingenieria_del_conocimiento)
-    (Asignatura Programacion_web)
-    (Asignatura Desarrollo_de_software)
+; Template para las distintas asignaturas disponibles, conteniendo su nombre
+; en formato codificado y en formato string
+(deftemplate ConvertirAsignatura
+    (field nombreString (default ?NONE))
+    (field nombreCodi (default ?NONE))
 )
 
+; Hechos para obtener el nombre de la asignatura formateado de mejor forma ó
+; también sirve para obtener el nombre de la asignatura en un formato a menor nivel
+; a partir de un string con el nombre de la asignatura
+
 (deffacts ConvertirAsignatura
-    (Convertir "Administracion de bases de datos" Administración_de_bases_de_datos)
-    (Convertir "Aprendizaje automatico" Aprendizaje_automatico)
-    (Convertir "Arquitectura de sistemas" Arquitectura_de_sistemas)
-    (Convertir "Desarrollo de sistemas distribuidos" Desarrollo_de_sistemas_distribuidos)
-    (Convertir "Ingenieria del conocimiento" Ingenieria_del_conocimiento)
-    (Convertir "Programacion web" Programacion_web)
-    (Convertir "Desarrollo de software" Desarrollo_de_software)
+    (ConvertirAsignatura (nombreString "Administracion de bases de datos")(nombreCodi Administración_de_bases_de_datos))
+    (ConvertirAsignatura (nombreString "Aprendizaje automatico")(nombreCodi Aprendizaje_automatico))
+    (ConvertirAsignatura (nombreString "Arquitectura de sistemas")(nombreCodi Arquitectura_de_sistemas))
+    (ConvertirAsignatura (nombreString "Desarrollo de sistemas distribuidos")(nombreCodi Desarrollo_de_sistemas_distribuidos))
+    (ConvertirAsignatura (nombreString "Ingenieria del conocimiento")(nombreCodi Ingenieria_del_conocimiento))
+    (ConvertirAsignatura (nombreString "Programacion web")(nombreCodi Programacion_web))
+    (ConvertirAsignatura (nombreString "Desarrollo de software")(nombreCodi Desarrollo_de_software))
 )
+
+; Evidencias para calcular la certeza de cada asignatura
 
 (deffacts ModuloPreguntaAconsejar::Evidencias
     (Evidencia Ambito_trabajo)
@@ -1212,6 +1294,8 @@
     (Evidencia Nivel_abstraccion)
 )
 
+; Rango de valores de cada una de las evidencias
+
 (deffacts ModuloPreguntaAconsejar::Valores
     (PosibleValor Ambito_trabajo 3 Docencia Empresa_privada Empresa_publica)
     (PosibleValor Calificacion_media 3 Baja 7 Media 9 Alta 11)
@@ -1224,9 +1308,13 @@
     (PosibleValor Nivel_abstraccion 3 Alto Medio Bajo)
 )
 
+; Rango continuo de las evidencias que reciban por entrada un valor continuo
+
 (deffacts ModuloPreguntaAconsejar::EvidenciaNumericas
     (EvidenciaNumerica Calificacion_media 0 10)
 )
+
+; Preguntas para las distintas evidencias
 
 (deffacts ModuloPreguntaAconsejar::Preguntas
     (Pregunta Calificacion_media "Que nota media tienes? ")
@@ -1240,10 +1328,14 @@
     (Pregunta Nivel_abstraccion "Que nivel de abstraccion tienes (1: Alto, 2: Medio, 3: Bajo)? ")
 )
 
+; Función para obtener un elemento de una lista
+
 (deffunction ModuloPreguntaAconsejar::obtenerElemento (?posicion $?lista)
     (bind ?elemento (nth$ ?posicion ?lista))
     return ?elemento
 )
+
+; Regla para preguntar por la primera asignatura seleccionada
 
 (defrule ModuloPreguntaAconsejar::pregunta_eleccion1
 (declare (salience 2))
@@ -1254,22 +1346,29 @@
 (assert (Eleccion1_ini ?respuesta))
 )
 
+; Regla para comprobar si la primera asignatura es correcta
+
 (defrule ModuloPreguntaAconsejar::comprobar_eleccion1
 (declare (salience 9999))
 ?X <- (Eleccion1_ini ?eleccion)
-(not (exists (Convertir ?eleccion ?conv_eleccion)))
+(not (exists (ConvertirAsignatura (nombreString ?eleccion)(nombreCodi ?conv_eleccion))))
 =>
 (printout t "La respuesta no es correcta. ")
 (retract ?X)
 )
 
+; Regla para convertir el nombre de la primera asignatura de formato string a
+; formato codificado
+
 (defrule ModuloPreguntaAconsejar::convertir_eleccion1
 (declare (salience 2))
 (Eleccion1_ini ?eleccion)
-(Convertir ?eleccion ?conv_eleccion)
+(ConvertirAsignatura (nombreString ?eleccion)(nombreCodi ?conv_eleccion))
 =>
 (assert (Eleccion (numero 1)(asignatura ?conv_eleccion)))
 )
+
+; Regla para preguntar por la segunda asignatura seleccionada
 
 (defrule ModuloPreguntaAconsejar::pregunta_eleccion2
 (declare (salience 1))
@@ -1280,22 +1379,29 @@
 (assert (Eleccion2_ini ?respuesta))
 )
 
+; Regla para comprobar si la segunda asignatura es correcta
+
 (defrule ModuloPreguntaAconsejar::comprobar_eleccion2
 (declare (salience 9999))
 ?X <- (Eleccion2_ini ?eleccion)
-(not (exists (Convertir ?eleccion ?conv_eleccion)))
+(not (exists (ConvertirAsignatura (nombreString ?eleccion)(nombreCodi ?conv_eleccion))))
 =>
 (printout t "La respuesta no es correcta. ")
 (retract ?X)
 )
 
+; Regla para convertir el nombre de la segunda asignatura de formato string a
+; formato codificado
+
 (defrule ModuloPreguntaAconsejar::convertir_eleccion2
 (declare (salience 1))
 (Eleccion2_ini ?eleccion)
-(Convertir ?eleccion ?conv_eleccion)
+(ConvertirAsignatura (nombreString ?eleccion)(nombreCodi ?conv_eleccion))
 =>
 (assert (Eleccion (numero 2)(asignatura ?conv_eleccion)))
 )
+
+; Regla para preguntar por las evidencias no numéricas
 
 (defrule ModuloPreguntaAconsejar::pregunta_evidencias_no_numerico
 ?X <- (Evidencia ?e)
@@ -1314,6 +1420,8 @@ else
 )
 (retract ?X)
 )
+
+; Función para convertir un valor continuo en uno discreto
 
 (deffunction ModuloPreguntaAconsejar::convertirRespuesta (?valor $?lista)
     (bind ?respuesta "")
@@ -1334,6 +1442,8 @@ else
     return ?respuesta
 )
 
+; Regla para preguntar por las evidencias numéricas
+
 (defrule ModuloPreguntaAconsejar::pregunta_evidencias_numerico
 ?X <- (Evidencia ?e)
 (EvidenciaNumerica ?e ?min ?max)
@@ -1352,6 +1462,8 @@ else
 (retract ?X)
 )
 
+; Regla para volver a preguntar por una evidencia
+
 (defrule ModuloPreguntaAconsejar::volver_a_preguntar_evidencia
 (declare (salience 1))
 ?X <- (volver_a_preguntar_evidencia ?e)
@@ -1360,6 +1472,8 @@ else
 (assert (Evidencia ?e))
 (retract ?X)
 )
+
+; Regla para preguntar por el grado de certeza del valor de una evidencia
 
 (defrule ModuloPreguntaAconsejar::preguntar_grado_certeza
 ?X <- (Evidencia ?e ?r)
@@ -1375,6 +1489,8 @@ else
 (retract ?X)
 )
 
+; Regla para volver a preguntar por el grado de certeza de una evidencia
+
 (defrule ModuloPreguntaAconsejar::volver_a_preguntar_certeza
 (declare (salience 1))
 ?X <- (volver_a_preguntar_certeza ?e ?r)
@@ -1384,6 +1500,8 @@ else
 (retract ?X)
 )
 
+; Regla para pasar al siguiente módulo
+
 (defrule ModuloPreguntaAconsejar::siguienteModulo
 (not (exists (Evidencia $?)))
 =>
@@ -1391,13 +1509,18 @@ else
 )
 
 
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+; --------------------------------------------------------------------------------------- ;
+; --------------------------- Modulo de Cálculo de la certeza --------------------------- ;
+; --------------------------------------------------------------------------------------- ;
 
 (defmodule ModuloCalculoAconsejar
     (import ModuloPreguntaAconsejar deftemplate FactorCerteza)
+    (import ModuloPreguntaAconsejar deftemplate ConvertirAsignatura)
     (export deftemplate Certeza)
 )
 
+; Template para la certeza de una evidencia
 (deftemplate Certeza
     (field evidencia (default ?NONE))
     (field certeza (default ?NONE))
@@ -1412,6 +1535,11 @@ else
 )
 return ?rv
 )
+
+
+; ---------------------------------- ;
+; ------------- Reglas ------------- ;
+; ---------------------------------- ;
 
 (defrule ModuloCalculoAconsejar::R1
 (FactorCerteza (evidencia Ambito_trabajo)(valor Empresa_privada)(certeza ?f1))
@@ -1612,18 +1740,22 @@ return ?rv
 (declare (salience 2))
 (FactorCerteza (evidencia ?h)(valor si)(certeza ?fc1))
 (FactorCerteza (evidencia ?h)(valor no)(certeza ?fc2))
-(Problema ?h)
+(ConvertirAsignatura (nombreString ?)(nombreCodi ?h))
 =>
 (assert (Certeza (evidencia ?h)(certeza (- ?fc1 ?fc2))))
 )
 
+; Regla para obtener la certeza de una asignatura
+
 (defrule ModuloCalculoAconsejar::obtener_certeza
 (declare (salience -1))
 (FactorCerteza (evidencia ?h)(valor ?)(certeza ?fc))
-(Problema ?h)
+(ConvertirAsignatura (nombreString ?)(nombreCodi ?h))
 =>
 (assert (Certeza (evidencia ?h)(certeza ?fc)))
 )
+
+; Regla para eliminar las certezas de menor valor en cada asignatura
 
 (defrule ModuloCalculoAconsejar::eliminar_evidencias_con_menor_certeza
 (Certeza (evidencia ?h1)(certeza ?fc1))
@@ -1634,6 +1766,8 @@ return ?rv
 (retract ?X)
 )
 
+; Regla para pasar al siguiente módulo
+
 (defrule ModuloCalculoAconsejar::siguienteModulo
 (declare (salience -2))
 =>
@@ -1641,26 +1775,51 @@ return ?rv
 )
 
 
-;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+; ----------------------------------------------------------------------------------------------- ;
+; --------------------------- Modulo de Reconmendación para aconsejar --------------------------- ;
+; ----------------------------------------------------------------------------------------------- ;$
 
 
 (defmodule ModuloRespuestaAconsejar
     (import ModuloPreguntaAconsejar deftemplate Eleccion)
+    (import ModuloPreguntaAconsejar deftemplate ConvertirAsignatura)
     (import ModuloCalculoAconsejar deftemplate Certeza)
 )
+
+; Regla para aconsejar cuando ambas asignaturas elegidas son iguales
 
 (defrule ModuloRespuestaAconsejar::elecciones_iguales
 (declare (salience 1))
 ?X <- (Eleccion (numero 1)(asignatura ?h1))
 ?Y <- (Eleccion (numero 2)(asignatura ?h2))
 (test (eq ?h1 ?h2))
-(Convertir ?nombre ?h1)
+(ConvertirAsignatura (nombreString ?nombre)(nombreCodi ?h1))
 =>
-(printout t "Te aconsejo que escogas la asignatura " ?nombre " porque has seleccionado la misma asignatura")
+(printout t "Te aconsejo que escogas la asignatura " ?nombre " porque has seleccionado la misma asignatura dos veces")
 (printout t crlf)
+(assert (Explicar ?h1))
 (retract ?X ?Y)
 )
 
+; Regla para aconsejar cuando ambas asignaturas elegidas tienen la misma certeza
+
+(defrule ModuloRespuestaAconsejar::empate_certeza
+(declare (salience 1))
+?X <- (Eleccion (numero 1)(asignatura ?h1))
+(Certeza (evidencia ?h1)(certeza ?fc1))
+?Y <- (Eleccion (numero 2)(asignatura ?h2))
+(Certeza (evidencia ?h2)(certeza ?fc2))
+(test (neq ?h1 ?h2))
+(test (eq ?fc1 ?fc2))
+(ConvertirAsignatura (nombreString ?nombre)(nombreCodi ?h1))
+=>
+(printout t "Te aconsejo que escogas la asignatura " ?nombre)
+(printout t crlf)
+(assert (Explicar ?h1))
+(retract ?X ?Y)
+)
+
+; Regla para aconsejar la primera elección
 
 (defrule ModuloRespuestaAconsejar::respuesta_eleccion1
 (Eleccion (numero 1)(asignatura ?h1))
@@ -1668,12 +1827,14 @@ return ?rv
 (Eleccion (numero 2)(asignatura ?h2))
 (Certeza (evidencia ?h2)(certeza ?fc2))
 (> ?fc1 ?fc2)
-(Convertir ?nombre ?h1)
+(ConvertirAsignatura (nombreString ?nombre)(nombreCodi ?h1))
 =>
 (printout t "Te aconsejo que escogas la asignatura " ?nombre)
 (printout t crlf)
 (assert (Explicar ?h1))
 )
+
+; Regla para aconsejar la segunda elección
 
 (defrule ModuloRespuestaAconsejar::respuesta_eleccion2
 (Eleccion (numero 1)(asignatura ?h1))
@@ -1681,12 +1842,41 @@ return ?rv
 (Eleccion (numero 2)(asignatura ?h2))
 (Certeza (evidencia ?h2)(certeza ?fc2))
 (> ?fc2 ?fc1)
-(Convertir ?nombre ?h2)
+(ConvertirAsignatura (nombreString ?nombre)(nombreCodi ?h2))
 =>
 (printout t "Te aconsejo que escogas la asignatura " ?nombre)
 (printout t crlf)
 (assert (Explicar ?h2))
 )
+
+; Regla para aconsejar cuando una de las elecciones no tiene ninguna certeza
+
+(defrule ModuloRespuestaAconsejar::respuesta_con_una_unica_certeza
+(Eleccion (numero ?num1)(asignatura ?h1))
+(Certeza (evidencia ?h1)(certeza ?fc1))
+(Eleccion (numero ?num2)(asignatura ?h2))
+(test (neq ?num1 ?num2))
+(not (exists (Certeza (evidencia ?h2)(certeza ?))))
+(ConvertirAsignatura (nombreString ?nombre)(nombreCodi ?h1))
+=>
+(printout t "Te aconsejo que escogas la asignatura " ?nombre)
+(printout t crlf)
+(assert (Explicar ?h1))
+)
+
+; Regla para aconsejar la elección por defecto
+
+(defrule ModuloRespuestaAconsejar::respuesta_por_defecto
+(not (exists (Certeza (evidencia ?)(certeza ?))))
+(Eleccion (numero 1)(asignatura ?h1))
+(ConvertirAsignatura (nombreString ?nombre)(nombreCodi ?h1))
+=>
+(printout t "Te aconsejo que escogas la asignatura " ?nombre)
+(printout t crlf)
+(printout t "Este consejo a sido por defecto")
+)
+
+; Regla para dar las explicaciones de la elección aconsejada
 
 (defrule ModuloRespuestaAconsejar::dar_explicaciones
 (Explicar ?h)

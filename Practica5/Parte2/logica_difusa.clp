@@ -299,6 +299,13 @@
 )
 
 (defrule pregunta3
+(declare (salience 1)) 
+=>
+(printout t "Edad: ")
+(assert (dato edad (read)))
+)
+
+(defrule pregunta4
 =>
 (assert (modulo calculo_fuzzy))
 )
