@@ -19,6 +19,15 @@
         <Class IRI="#Asignatura"/>
     </Declaration>
     <Declaration>
+        <Class IRI="#Asignatura_Practicas"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Asignatura_Problemas"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Asignatura_Teoria"/>
+    </Declaration>
+    <Declaration>
         <Class IRI="#Carrera"/>
     </Declaration>
     <Declaration>
@@ -100,6 +109,27 @@
         <DataProperty IRI="#TipoCarrera"/>
     </Declaration>
     <EquivalentClasses>
+        <Class IRI="#Asignatura_Practicas"/>
+        <DataHasValue>
+            <DataProperty IRI="#TipoAsignatura"/>
+            <Literal>Practicas</Literal>
+        </DataHasValue>
+    </EquivalentClasses>
+    <EquivalentClasses>
+        <Class IRI="#Asignatura_Problemas"/>
+        <DataHasValue>
+            <DataProperty IRI="#TipoAsignatura"/>
+            <Literal>Problemas</Literal>
+        </DataHasValue>
+    </EquivalentClasses>
+    <EquivalentClasses>
+        <Class IRI="#Asignatura_Teoria"/>
+        <DataHasValue>
+            <DataProperty IRI="#TipoAsignatura"/>
+            <Literal>Teoria</Literal>
+        </DataHasValue>
+    </EquivalentClasses>
+    <EquivalentClasses>
         <Class IRI="#Carrera_DobleGrado"/>
         <ObjectExactCardinality cardinality="5">
             <ObjectProperty IRI="#contieneCurso"/>
@@ -160,16 +190,68 @@
         <Class IRI="#Curso"/>
     </DisjointClasses>
     <ObjectPropertyDomain>
+        <ObjectProperty IRI="#asignaturaAprobada"/>
+        <Class IRI="#Alumno"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#asignaturaCursada"/>
+        <Class IRI="#Alumno"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#asignaturaRequiere"/>
+        <Class IRI="#Alumno"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#asignaturaRequiere"/>
+        <Class IRI="#Asignatura"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#asignaturaSuspensa"/>
+        <Class IRI="#Alumno"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#contieneAsignatura"/>
+        <Class IRI="#Curso"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
         <ObjectProperty IRI="#contieneCurso"/>
         <Class IRI="#Carrera"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#impartidaPor"/>
+        <Class IRI="#Asignatura"/>
     </ObjectPropertyDomain>
     <ObjectPropertyDomain>
         <ObjectProperty IRI="#matriculadoAlumno"/>
         <Class IRI="#Carrera"/>
     </ObjectPropertyDomain>
     <ObjectPropertyRange>
+        <ObjectProperty IRI="#asignaturaAprobada"/>
+        <Class IRI="#Asignatura"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#asignaturaCursada"/>
+        <Class IRI="#Asignatura"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#asignaturaRequiere"/>
+        <Class IRI="#Asignatura"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#asignaturaSuspensa"/>
+        <Class IRI="#Asignatura"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#contieneAsignatura"/>
+        <Class IRI="#Asignatura"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
         <ObjectProperty IRI="#contieneCurso"/>
         <Class IRI="#Curso"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#impartidaPor"/>
+        <Class IRI="#Profesor"/>
     </ObjectPropertyRange>
     <ObjectPropertyRange>
         <ObjectProperty IRI="#matriculadoAlumno"/>
@@ -199,6 +281,14 @@
     <FunctionalDataProperty>
         <DataProperty IRI="#TipoCarrera"/>
     </FunctionalDataProperty>
+    <DataPropertyDomain>
+        <DataProperty IRI="#CorreoAlumno"/>
+        <Class IRI="#Alumno"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#CorreoProfesor"/>
+        <Class IRI="#Profesor"/>
+    </DataPropertyDomain>
     <DataPropertyDomain>
         <DataProperty IRI="#NombreAlumno"/>
         <Class IRI="#Alumno"/>
@@ -216,12 +306,28 @@
         <Class IRI="#Profesor"/>
     </DataPropertyDomain>
     <DataPropertyDomain>
+        <DataProperty IRI="#NumeroCreditosAsignatura"/>
+        <Class IRI="#Asignatura"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
         <DataProperty IRI="#NumeroCreditosCarrera"/>
         <Class IRI="#Carrera"/>
     </DataPropertyDomain>
     <DataPropertyDomain>
+        <DataProperty IRI="#NumeroCreditosCurso"/>
+        <Class IRI="#Curso"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
         <DataProperty IRI="#NumeroCursosCarrera"/>
         <Class IRI="#Carrera"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#OpinionAsignatura"/>
+        <Class IRI="#Asignatura"/>
+    </DataPropertyDomain>
+    <DataPropertyDomain>
+        <DataProperty IRI="#OpinionProfesor"/>
+        <Class IRI="#Profesor"/>
     </DataPropertyDomain>
     <DataPropertyDomain>
         <DataProperty IRI="#TipoAsignatura"/>
@@ -231,6 +337,14 @@
         <DataProperty IRI="#TipoCarrera"/>
         <Class IRI="#Carrera"/>
     </DataPropertyDomain>
+    <DataPropertyRange>
+        <DataProperty IRI="#CorreoAlumno"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#CorreoProfesor"/>
+        <Datatype abbreviatedIRI="xsd:string"/>
+    </DataPropertyRange>
     <DataPropertyRange>
         <DataProperty IRI="#NombreAlumno"/>
         <Datatype abbreviatedIRI="xsd:string"/>
@@ -248,11 +362,27 @@
         <Datatype abbreviatedIRI="xsd:string"/>
     </DataPropertyRange>
     <DataPropertyRange>
+        <DataProperty IRI="#NumeroCreditosAsignatura"/>
+        <Datatype abbreviatedIRI="xsd:int"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
         <DataProperty IRI="#NumeroCreditosCarrera"/>
         <Datatype abbreviatedIRI="xsd:int"/>
     </DataPropertyRange>
     <DataPropertyRange>
+        <DataProperty IRI="#NumeroCreditosCurso"/>
+        <Datatype abbreviatedIRI="xsd:int"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
         <DataProperty IRI="#NumeroCursosCarrera"/>
+        <Datatype abbreviatedIRI="xsd:int"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#OpinionAsignatura"/>
+        <Datatype abbreviatedIRI="xsd:int"/>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#OpinionProfesor"/>
         <Datatype abbreviatedIRI="xsd:int"/>
     </DataPropertyRange>
     <DataPropertyRange>
